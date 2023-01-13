@@ -1,5 +1,5 @@
 import numpy as np
-
+import scipy.signal as sig
 
 def filter_bands(filterLength : int, numChannels : int, inputSignal : np.array):
     """
