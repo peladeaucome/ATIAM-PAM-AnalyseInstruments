@@ -7,11 +7,16 @@ def rankFilter_stft(x_psd, rankFilter_bins, rankFilter_rank = .5):
     """
     Returns the noise PSD estimation
     args :
-        - x_psd : input STFT (PSD)
-        - num_bins : number of frequency bins over which the quantile filter is performed
-        - rank : rank of the quantile filter
+        - x_psd : array-like
+            input STFT (PSD)
+        - num_bins : int
+            number of frequency bins over which the quantile filter is performed
+        - rank : float
+            rank of the quantile filter. Should be between 0 and 1
+    
     returns :
-        - X_filt : filtered STFT
+        - X_filt : array-like
+            STFT of the estimated noise
     """
     rank_filtered = np.zeros(np.shape(x_psd))
     for f in range(np.shape(x_psd)[0]):
