@@ -23,7 +23,6 @@ def rankFilter_stft(x_psd, rankFilter_bins, rankFilter_rank = .5):
         f_lowerBound = max(0, f-rankFilter_bins//2)
         f_upperBound = min(np.shape(x_psd)[0]-1, f+rankFilter_bins//2)
         rank_filtered[f,:] = np.quantile(x_psd[f_lowerBound:f_upperBound], q = rankFilter_rank, axis = 0)
-
     return rank_filtered
 
 def whiten_spectrum(x, n_fft, rankFilter_bins, rankFilter_rank, ARFilter_length, threshold = 1e-6):
