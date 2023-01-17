@@ -86,13 +86,30 @@ def whiten_stft(x, n_fft, rankFilter_bins, rankFilter_rank, ARFilter_length, thr
     )
     
     # Initializing the output vector
-    xWhitened = np.zeros(len(x))
+    xWhitened = np.zeros((n_fft, np.shape(x_stft)[1]))
     for t in range(np.shape(x_stft)[1]):
         x_windowed = x[t*n_fft:(t+1)*n_fft]
         if np.std(x_windowed)>threshold:
             ARFilter_a = compute_ARFilter(noise_psd[:,t], ARFilter_length)
             #Filtering x
-            xWhitened[t*n_fft:(t+1)*n_fft] = sig.lfilter(ARFilter_a, [1], x_windowed)
+            xWhitened[:,t] = sig.lfilter(ARFilter_a, [1], x_windowed)
         else:
-            xWhitened[t*n_fft:(t+1)*n_fft] = x_windowed
+            xWhitened[:,t] = x_windowed
     return xWhitened
+
+
+def compute_stft_from_whitened(xWhitened):
+    """
+    Computes the STFT from the whitened signal array
+    args :
+        - xWhitened : array-like
+            Whitened signal array
+    
+    returns
+        - xWhitened_stft : array-like
+            STFT of the whitened signal
+    """
+    xWhitened_stft = np.zeros((np.shape(xWhitened)[0]//2+1, np.shape(xWhitened)[1]))
+    for t in range(np.shape(xWhitened_stft)[1]):
+        xWhitened_stft[:,t] = np.fft.rfft(xWhitened[:,t], n = np.shape(xWhitened)[0])
+    return xWhitened_stft
