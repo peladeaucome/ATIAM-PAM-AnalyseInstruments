@@ -34,6 +34,7 @@ xS = np.linspace(0,L,NxS) #Vecteur de la corde
 phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis]/2/L) #Déformées d'une corde fixe aux extrémités
 pnS = (2 * NnS - 1) * np.pi / (2 * L)
 fnS = (ct / 2 / np.pi) * pnS * (1 + pnS**2 * B / (2 * T)) #Fréquences propres de la corde (hz)
+print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
 wnS = 2*np.pi*fnS
 
 etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
@@ -49,17 +50,17 @@ KS = MS*np.diag(wnS**2)
 #=========================================== CONFIG PLAQUE =====================================================================================================
 
 ## Paramètres physique
-h = 1.5e-3 #Epaisseur de  la plaque (m)
-nu = 0.3 #Coeff de poisson (Pa)
-E = 1.27e10 #Module de Young (Pa)
-rho = 450 #Masse volumique (kg/m3)
+h = 3e-3 #Epaisseur de  la plaque (m)
+nu = 0.2 #Coeff de poisson (Pa)
+E = 7e9 #Module de Young (Pa)
+rho = 400 #Masse volumique (kg/m3)
 D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque
-eta = 0.05 #Amortissement interne à la plaque
+eta = 0.005 #Amortissement interne à la plaque
 Lx, Ly, Lz = 530e-3, 200e-3, h #Dimensions (m)
 
 ## Paramètres de discrétisation
-NB = 15          #Nombre de modes selon x
-MB = 15          #Nombre de modes selon y
+NB = 7          #Nombre de modes selon x
+MB = 7          #Nombre de modes selon y
 NmB = NB*MB      #Nombre de modes total considérés dans le modèle de plaque
 
 Nx = 40

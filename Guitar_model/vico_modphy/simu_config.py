@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 
 # Vecteur temps
-Fe = 4000 #Fréquence d'échantillonnage (hz)
+Fe = 8000 #Fréquence d'échantillonnage (hz)
 T = 10 #Temps d'acquisition (s)
 t = np.linspace(0, T, T*Fe) #Vecteur temps
 Nt = len(t)
