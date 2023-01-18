@@ -41,10 +41,16 @@ B = np.block([
         ])]
 ])
 
+#Pour observer la position
 C = np.block([
     [np.eye(NmS+NmB) ,  np.zeros((NmS+NmB,NmS+NmB))]
 ])
-#C permet d'observer la position avec les NmS premieres contributions des modes de la corde et ensuite les NmB de la plaque
+
+#Pour observer la vitesse
+# C = np.block([
+#     [np.zeros((NmS+NmB,NmS+NmB)) ,  np.eye(NmS+NmB)]
+# ])
+
 
 D = 0
 
