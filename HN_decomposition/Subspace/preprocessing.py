@@ -53,7 +53,7 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     #ARFilter_a = np.concatenate((np.ones(1), -np.dot(scipy.linalg.inv(R), r)))
     return ARFilter_a
 
-def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'boxcar'):
+def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
     """
     Whitens each window of x
     args :
@@ -69,6 +69,8 @@ def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int,
             size of he auto-regressive filter
         - threshold : float
             RMS threshold below which the signal is left unfiltered to avoid computation problems
+        - window_type : str
+            window type. Default : hann
     
     returns :
         - xWhitened : array-like, same size as x
@@ -100,17 +102,20 @@ def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int,
     return xWhitened
 
 
-def compute_stft_from_whitened(xWhitened:npt.ArrayLike,window_type:str ='boxcar'):
+def compute_stft_from_whitened(xWhitened:npt.ArrayLike ,window_type:str ='hann'):
     """
     Computes the STFT from the whitened signal array
     args :
         - xWhitened : array-like
             Whitened signal array
-    
+        - window_type : str
+            window type. Default : hann
     returns
         - xWhitened_stft : array-like
             STFT of the whitened signal
     """
+    if window_type==None:
+        window_type=='hann'
     xWhitened_stft = np.zeros((np.shape(xWhitened)[0]//2+1, np.shape(xWhitened)[1]), dtype = 'complex128')
     window = sig.get_window(window_type, np.shape(xWhitened)[0])
     for t in range(np.shape(xWhitened_stft)[1]):
