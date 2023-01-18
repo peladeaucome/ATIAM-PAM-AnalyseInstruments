@@ -2,8 +2,9 @@ import numpy as np
 import librosa
 import scipy.signal as sig
 import scipy.linalg
+import numpy.typing as npt
 
-def rankFilter_stft(x_stft, rankFilter_bins, rankFilter_rank = .5):
+def rankFilter_stft(x_stft:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:float = .5):
     """
     Returns the noise PSD estimation
     args :
@@ -27,7 +28,7 @@ def rankFilter_stft(x_stft, rankFilter_bins, rankFilter_rank = .5):
     return rank_filtered_stft
 
 
-def compute_ARFilter(noise_psd, ARFilter_length):
+def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     """
     Computes the auto-regressive filter coefficients to match a given noise power spectral density,
     based on the assumption that the noise is obtained by filtering white noise with an AR filter.
@@ -52,7 +53,7 @@ def compute_ARFilter(noise_psd, ARFilter_length):
     #ARFilter_a = np.concatenate((np.ones(1), -np.dot(scipy.linalg.inv(R), r)))
     return ARFilter_a
 
-def whiten_stft(x, n_fft, rankFilter_bins, rankFilter_rank, ARFilter_length, threshold = 1e-6):
+def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'boxcar'):
     """
     Whitens each window of x
     args :
@@ -76,8 +77,9 @@ def whiten_stft(x, n_fft, rankFilter_bins, rankFilter_rank, ARFilter_length, thr
     x_stft = librosa.stft(
         x,
         n_fft = n_fft,
-        hop_length=n_fft,
-        center=False
+        hop_length=hop_length,
+        center=False,
+        window=window_type
     )
     noise_psd = rankFilter_stft(
         x_stft = x_stft,
@@ -88,7 +90,7 @@ def whiten_stft(x, n_fft, rankFilter_bins, rankFilter_rank, ARFilter_length, thr
     # Initializing the output vector
     xWhitened = np.zeros((n_fft, np.shape(x_stft)[1]))
     for t in range(np.shape(x_stft)[1]):
-        x_windowed = x[t*n_fft:(t+1)*n_fft]
+        x_windowed = x[t*hop_length:t*hop_length+n_fft]
         if np.std(x_windowed)>threshold:
             ARFilter_a = compute_ARFilter(noise_psd[:,t], ARFilter_length)
             #Filtering x
@@ -98,7 +100,7 @@ def whiten_stft(x, n_fft, rankFilter_bins, rankFilter_rank, ARFilter_length, thr
     return xWhitened
 
 
-def compute_stft_from_whitened(xWhitened):
+def compute_stft_from_whitened(xWhitened:npt.ArrayLike,window_type:str ='boxcar'):
     """
     Computes the STFT from the whitened signal array
     args :
@@ -109,7 +111,8 @@ def compute_stft_from_whitened(xWhitened):
         - xWhitened_stft : array-like
             STFT of the whitened signal
     """
-    xWhitened_stft = np.zeros((np.shape(xWhitened)[0]//2+1, np.shape(xWhitened)[1]))
+    xWhitened_stft = np.zeros((np.shape(xWhitened)[0]//2+1, np.shape(xWhitened)[1]), dtype = 'complex128')
+    window = sig.get_window(window_type, np.shape(xWhitened)[0])
     for t in range(np.shape(xWhitened_stft)[1]):
-        xWhitened_stft[:,t] = np.fft.rfft(xWhitened[:,t], n = np.shape(xWhitened)[0])
+        xWhitened_stft[:,t] = np.fft.rfft(xWhitened[:,t]*window)
     return xWhitened_stft
