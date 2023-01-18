@@ -53,7 +53,7 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     #ARFilter_a = np.concatenate((np.ones(1), -np.dot(scipy.linalg.inv(R), r)))
     return ARFilter_a
 
-def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
+def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
     """
     Whitens each window of x
     args :
@@ -91,15 +91,17 @@ def whiten_stft(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int,
     
     # Initializing the output vector
     xWhitened = np.zeros((n_fft, np.shape(x_stft)[1]))
+    ARFilters = np.zeros((ARFilter_length+1, np.shape(x_stft)[1]))
     for t in range(np.shape(x_stft)[1]):
         x_windowed = x[t*hop_length:t*hop_length+n_fft]
         if np.std(x_windowed)>threshold:
             ARFilter_a = compute_ARFilter(noise_psd[:,t], ARFilter_length)
+            ARFilters[:,t] = ARFilter_a
             #Filtering x
             xWhitened[:,t] = sig.lfilter(ARFilter_a, [1], x_windowed)
         else:
             xWhitened[:,t] = x_windowed
-    return xWhitened
+    return xWhitened, ARFilters
 
 
 def compute_stft_from_whitened(xWhitened:npt.ArrayLike ,window_type:str ='hann'):
