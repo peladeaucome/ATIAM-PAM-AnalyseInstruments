@@ -75,6 +75,10 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:in
     returns :
         - xWhitened : array-like, same size as x
             x which has been 'whitened' on each window
+        - xChopped : array-like
+            each time frame of the original signal
+        - ARFilters : array-like
+            coeeficients of the ARFilters for each time frame
     """
     x_stft = librosa.stft(
         x,
@@ -89,8 +93,9 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:in
         rankFilter_rank = rankFilter_rank
     )
     
-    # Initializing the output vector
+    # Initializing the output arrays
     xWhitened = np.zeros((n_fft, np.shape(x_stft)[1]))
+    xChopped = np.zeros((n_fft, np.shape(x_stft)[1]))
     ARFilters = np.zeros((ARFilter_length+1, np.shape(x_stft)[1]))
     for t in range(np.shape(x_stft)[1]):
         x_windowed = x[t*hop_length:t*hop_length+n_fft]
@@ -101,7 +106,8 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:in
             xWhitened[:,t] = sig.lfilter(ARFilter_a, [1], x_windowed)
         else:
             xWhitened[:,t] = x_windowed
-    return xWhitened, ARFilters
+        xChopped[:,t] = x_windowed
+    return xWhitened, xChopped, ARFilters
 
 
 def compute_stft_from_whitened(xWhitened:npt.ArrayLike ,window_type:str ='hann'):
