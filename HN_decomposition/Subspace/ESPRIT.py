@@ -39,7 +39,7 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
         - f
     """
     window_size = len(x)//2
-
+    #window_size = num_poles*2
     N = len(x)
     l = N-window_size+1
 
