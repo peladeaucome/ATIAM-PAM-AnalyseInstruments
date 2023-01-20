@@ -12,13 +12,16 @@ Ce code permet de fixer les paramètres de la simulation temporelle du modèle p
 
 import numpy as np
 import utils_modphy as u
-from guitare_config import xS, L, NxS
+from guitare_config import xS, L, NxS, fnS, fnB
 import matplotlib.pyplot as plt
 
 
 # Vecteur temps
-Fe = 8000 #Fréquence d'échantillonnage (hz)
+Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
+Fe = 8000
+print(f"Fréquence d'échantillonage : {Fe} Hz")
 T = 10 #Temps d'acquisition (s)
+print(f"Temps d'acquisition : {T} s")
 t = np.linspace(0, T, T*Fe) #Vecteur temps
 Nt = len(t)
 

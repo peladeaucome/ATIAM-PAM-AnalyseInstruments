@@ -30,7 +30,7 @@ Aa2 = np.block([
 ])
 
 # Choix concernant le mouvement de la table au point de couplage
-Aa = Aa1
+Aa = Aa2
 
 B = Aa @ np.linalg.inv(M**(1/2))
 Bplus = B.T @ np.linalg.inv((B @ B.T))
