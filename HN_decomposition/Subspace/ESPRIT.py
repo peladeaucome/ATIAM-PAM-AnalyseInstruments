@@ -38,12 +38,12 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
             dampening factors
         - f
     """
-    window_size = len(x)//2
-    #window_size = num_poles*2
+    mat_size = len(x)//2
+    #mat_size = num_poles*2
     N = len(x)
-    l = N-window_size+1
+    l = N-mat_size+1
 
-    X=scipy.linalg.hankel(x[:window_size],x[window_size-1:N])
+    X=scipy.linalg.hankel(x[:mat_size],x[mat_size-1:N])
 
     # Computing the autocorrelation matrix
     Rxx=(1/l)*(X@(np.conjugate(X.T)))
@@ -68,3 +68,4 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
     
     complexAmp = LeastSquare(x, damp, redFreq)
     return poles, complexAmp, Lambda
+
