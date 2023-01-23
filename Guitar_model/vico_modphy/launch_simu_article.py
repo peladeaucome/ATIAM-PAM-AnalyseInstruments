@@ -46,3 +46,5 @@ for i in range(point_temp-1):
     q_d_temp = q_d_temp + 0.5 * h * (q_dd_temp[:,i] + q_dd_temp[:,i+1])
 
 Q = q_temp
+
+F_c = Z @ q_dd_temp

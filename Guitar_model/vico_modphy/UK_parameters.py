@@ -35,3 +35,5 @@ Aa = Aa2
 B = Aa @ np.linalg.inv(M**(1/2))
 Bplus = B.T @ np.linalg.inv((B @ B.T))
 W = np.eye(NmS+NmB) - np.linalg.inv(M**(1/2)) @ Bplus @ Aa
+
+Z = - M ** (1/2) @ Bplus @ Aa #pour calculer la force ensuite
