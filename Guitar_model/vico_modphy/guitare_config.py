@@ -123,14 +123,16 @@ for j in range(NmB) :
     PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
     MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
 
-MmB /= 100
+#MmB /= 100
 
 ### Normalisation des masses modales
 norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
 phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
+
 ### Matrices modales
-MB = np.diag(MmB)
+#MB = np.diag(MmB)
+MB = np.eye(NmB)
 CB = np.diag(2*MmB*wnB*xinB)
 KB = np.diag(MmB*wnB**2)
 
