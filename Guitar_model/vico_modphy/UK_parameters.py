@@ -14,7 +14,7 @@ phiSB = phiS_Nx_NmS[-1,:] #déformée de la corde au point du chevalet
 phiSF = phiS_Nx_NmS[250,:] #déformée de la corde au point d'appuis du doigt du guitariste
 
 #Point de couplage (par rapport à la table)
-xc, yc = x[int(13/19*Nx)], y[Ny//2]
+xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
 xc_idx, yc_idx = u.find_nearest_index(x, xc), u.find_nearest_index(y, yc)
 xyc = u.ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
 phiBS = phiB_NxNy_NmB[xyc,:]

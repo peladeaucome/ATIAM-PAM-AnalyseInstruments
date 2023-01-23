@@ -50,13 +50,13 @@ KS = MS*np.diag(wnS**2)
 #=========================================== CONFIG PLAQUE =====================================================================================================
 
 ## Paramètres physique
-h = 3e-3 #Epaisseur de  la plaque (m)
+h = 2.8e-3 #Epaisseur de  la plaque (m)
 nu = 0.2 #Coeff de poisson (Pa)
 E = 7e9 #Module de Young (Pa)
 rho = 400 #Masse volumique (kg/m3)
 D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque
-eta = 0.005 #Amortissement interne à la plaque
-Lx, Ly, Lz = 530e-3, 200e-3, h #Dimensions (m)
+eta = 0.02 #Amortissement interne à la plaque
+Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
 
 ## Paramètres de discrétisation
 NB = 7          #Nombre de modes selon x
@@ -65,10 +65,18 @@ NmB = NB*MB      #Nombre de modes total considérés dans le modèle de plaque
 
 Nx = 40
 Ny = 40
-dx = Lx/(Nx-1)
-dy = Ly/(Ny-1)
-x = np.linspace(0,Lx,Nx)
-y = np.linspace(0,Ly,Ny)
+
+dx = 10e-3 #(10mm)
+dy = 10e-3 #(10mm)
+x = np.arange(0,Lx,dx)
+y = np.arange(0,Ly,dy)
+Nx = len(x)
+Ny = len(y)
+
+# dx = Lx/(Nx-1)
+# dy = Ly/(Ny-1)
+# x = np.linspace(0,Lx,Nx)
+# y = np.linspace(0,Ly,Ny)
 X_plate, Y_plate = np.meshgrid(x, y)
 X_ravel, Y_ravel = np.ravel(X_plate), np.ravel(Y_plate)
 
@@ -114,6 +122,8 @@ MmB = np.zeros(NmB)
 for j in range(NmB) :
     PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
     MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
+
+MmB /= 100
 
 ### Normalisation des masses modales
 norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
