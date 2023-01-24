@@ -61,7 +61,7 @@ Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
 ## Paramètres de discrétisation
 NB = 7          #Nombre de modes selon x
 MB = 7          #Nombre de modes selon y
-NmB = NB*MB      #Nombre de modes total considérés dans le modèle de plaque
+NmB = NB * MB      #Nombre de modes total considérés dans le modèle de plaque
 
 Nx = 40
 Ny = 40
@@ -129,10 +129,18 @@ for j in range(NmB) :
 norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
 phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
+### calcul plaque de l'article
+xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4,0.9,0.7,0.7,0.6,1.4,1.0,1.3])/100
+fnB = np.array([78.3,100.2,187.3, 207.8, 250.9,291.8,314.7,344.5,399.0,429.6,482.9,504.2,553.9,580.3,645.7,723.5])
+MmB = np.array([2.91,0.45,0.09,0.25,2.65,9.88,8.75,8.80,0.90,0.41,0.38,1.07,2.33,1.36,2.02,0.45])
+NmB = len(fnB)
+
+wnB = 2 * np.pi * fnB
+phiB_NxNy_NmB = np.ones(NmB)
 
 ### Matrices modales
-#MB = np.diag(MmB)
-MB = np.eye(NmB)
+MB = np.diag(MmB) #article
+#MB = np.eye(NmB) #modele
 CB = np.diag(2*MmB*wnB*xinB)
 KB = np.diag(MmB*wnB**2)
 
