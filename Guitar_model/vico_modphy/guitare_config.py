@@ -12,6 +12,7 @@ La plaque est supposée simplement appuyée, la normalisation choisie est celle 
 """
 
 import numpy as np
+from exp_guitare_configs import *
 
 #=========================================== CONFIG CORDE =====================================================================================================
 
@@ -51,12 +52,14 @@ KS = MS*np.diag(wnS**2)
 
 ## Paramètres physique
 h = 2.8e-3 #Epaisseur de  la plaque (m)
+h = table_composite["h"] #Epaisseur de  la plaque (m)
 nu = 0.2 #Coeff de poisson (Pa)
-E = 7e9 #Module de Young (Pa)
+E = 2.1e9 #Module de Young (Pa)
 rho = 400 #Masse volumique (kg/m3)
+rho = table_composite["rho"] #Masse volumique (kg/m3)
 D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque
 eta = 0.02 #Amortissement interne à la plaque
-Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
+Lx, Ly, Lz = (40-1)*1e-2, (25.9-1)*1e-2, h #Dimensions (m)
 
 ## Paramètres de discrétisation
 NB = 7          #Nombre de modes selon x
