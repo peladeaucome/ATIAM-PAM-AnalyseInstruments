@@ -1,21 +1,23 @@
-import numpy as np
-import numpy.typing as npt
+import torch
 import scipy
 
-def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
+def herm(A:torch.tensor):
+    return torch.conj(torch.transpose(A))
+
+def LeastSquare(x:torch.tensor, damp:torch.tensor, redFreq:torch.tensor):
     #Estimation des amplitudes et des phases
     N=len(x)
     num_poles=len(redFreq)
-    t = np.arange(0,N)
-    k=np.arange(0,num_poles)
+    t = torch.arange(0,N)
+    k = torch.arange(0,num_poles)
 
     # Computing the Vandermonde matrix V
 
-    log_V = t[:,None]*(damp+2j*np.pi*redFreq)
-    V = np.exp(log_V)
+    log_V = t[:,None]*(damp+2j*torch.pi*redFreq)
+    V = torch.exp(log_V)
 
     # Computing the complex vector of amplitudes and initial phases
-    complexAmp =np.linalg.pinv(V)@x
+    complexAmp = torch.linalg.pinv(V)@x
 
     # Separating the amplitudes and phases
     # amp = np.abs(complexAmp)
@@ -25,7 +27,7 @@ def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
 
 
 
-def ESPRIT(x:npt.ArrayLike,num_poles:int):
+def ESPRIT(x:torch.tensor,num_poles:int):
     """
     Performs the ESPRIT algorithm over the input signal
     
@@ -43,18 +45,20 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
         - Lambda : array-like
             eigen-values of the autocorrelation matrix
     """
-    mat_size = len(x)//2
+    
+    N = torch.size(x)[0]
+    mat_size = N//2
     #mat_size = num_poles*2
-    N = len(x)
     l = N-mat_size+1
+    
 
-    X=scipy.linalg.hankel(x[:mat_size],x[mat_size-1:N])
+    X = scipy.linalg.hankel(x[:mat_size],x[mat_size-1:N])
 
     # Computing the autocorrelation matrix
-    Rxx=(1/l)*(X@(np.conjugate(X.T)))
+    Rxx=(1/l)*torch.matmul(X, herm(X))
 
     # Diagonilizing the autocorelation matrix
-    U1,Lambda,U2 = np.linalg.svd(Rxx)
+    U1,Lambda,U2 = torch.linalg.svd(Rxx)
     
     # Creating a base of the signal space
     W=U1[:,:num_poles]
@@ -64,20 +68,20 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
 
 
     # Creating a matrix phi
-    phi = np.linalg.pinv(W_down)@W_up
+    phi = torch.linalg.pinv(W_down)@W_up
 
     # Computing its singular values (which are the signal poles)
-    poles = np.linalg.eig(phi)[0]
-    damp = np.log(np.abs(poles))
-    redFreq = (1/(2*np.pi))*np.angle(poles)
+    poles = torch.linalg.eig(phi)[0]
+    damp = torch.log(torch.abs(poles))
+    redFreq = (1/(2*torch.pi))*torch.angle(poles)
     
     complexAmp = LeastSquare(x, damp, redFreq)
     return poles, complexAmp, Lambda
 
 def norm2(x):
-        return np.sum(np.square(x))
+        return torch.sum(torch.square(x))
 
-def HRHATRAC_numpy(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1, mu_L:float = .5, mu_V = .5):
+def HRHATRAC_numpy(xChopped:torch.tensor, num_poles:int, beta:float = 1, mu_L:float = .5, mu_V = .5):
     """
     Performs the HRAHATRAC algorithm [1] with the exponential window Fast Approximate Power Iteration subspace-tracker [2].
    

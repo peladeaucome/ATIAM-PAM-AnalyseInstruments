@@ -7,6 +7,7 @@ import numpy.typing as npt
 def rankFilter_stft(x_stft:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:float = .5):
     """
     Returns the noise PSD estimation
+
     args :
         - x_psd : array-like
             input STFT (PSD)
@@ -56,6 +57,7 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
 def whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
     """
     Whitens each window of x
+
     args :
         - x : array-like
             input signal
@@ -80,7 +82,7 @@ def whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter
         - xChopped : array-like
             each time frame of the original signal
         - ARFilters : array-like
-            coeeficients of the ARFilters for each time frame
+            coefficients of the ARFilters for each time frame
     """
     x_stft = librosa.stft(
         x,
