@@ -29,7 +29,7 @@ q_temp = np.zeros((NmS + NmB, point_temp))
 q_dd_temp = np.zeros((NmS + NmB, point_temp))
 q_d_temp = np.zeros(NmS + NmB)
 q_d_temp_demi = np.zeros_like(q_d_temp)
-
+q_pour_f = np.zeros_like(q_temp)
 M_inv = np.linalg.inv(M)
 
 #shéma
@@ -40,9 +40,11 @@ for i in range(point_temp-1):
 
     F_temp = - C @ q_d_temp_demi - K @ q_temp[:,i+1] + F_pro_tot[:,i+1]
     q_u_dd_temp = M_inv @ F_temp
+    q_pour_f[:,i+1] = q_u_dd_temp
 
     q_dd_temp[:,i+1] = W @ q_u_dd_temp
 
     q_d_temp = q_d_temp + 0.5 * h * (q_dd_temp[:,i] + q_dd_temp[:,i+1])
-
 Q = q_temp
+
+F_c = Z @ q_pour_f

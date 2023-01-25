@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 # Vecteur temps
 Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
-Fe = 8000
+Fe = 44100
 print(f"Fréquence d'échantillonage : {Fe} Hz")
 T = 10 #Temps d'acquisition (s)
 print(f"Temps d'acquisition : {T} s")
