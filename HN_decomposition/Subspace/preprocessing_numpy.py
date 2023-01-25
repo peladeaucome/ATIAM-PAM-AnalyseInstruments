@@ -53,14 +53,16 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     #ARFilter_a = np.concatenate((np.ones(1), -np.dot(scipy.linalg.inv(R), r)))
     return ARFilter_a
 
-def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
+def whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
     """
     Whitens each window of x
     args :
         - x : array-like
             input signal
-        - n_fft : int
-            number of samples each fft is computed over
+        - window_length : int
+            length of the windows
+        - hop_length : int
+            number of samples taat
         - rankFilter_bins : int
             size of the rank filter
         - rankFilter_rank : float or int
@@ -82,7 +84,7 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:in
     """
     x_stft = librosa.stft(
         x,
-        n_fft = n_fft,
+        n_fft = window_length,
         hop_length=hop_length,
         center=False,
         window=window_type
@@ -94,19 +96,20 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, hop_length:int, rankFilter_bins:in
     )
     
     # Initializing the output arrays
-    xWhitened = np.zeros((n_fft, np.shape(x_stft)[1]))
-    xChopped = np.zeros((n_fft, np.shape(x_stft)[1]))
-    ARFilters = np.zeros((ARFilter_length+1, np.shape(x_stft)[1]))
+    xWhitened = np.zeros((np.shape(x_stft)[1], window_length))
+    xChopped = np.zeros((np.shape(x_stft)[1], window_length))
+    ARFilters = np.zeros((np.shape(x_stft)[1], ARFilter_length+1))
+
     for t in range(np.shape(x_stft)[1]):
-        x_windowed = x[t*hop_length:t*hop_length+n_fft]
+        x_windowed = x[t*hop_length:t*hop_length+window_length]
         if np.std(x_windowed)>threshold:
             ARFilter_a = compute_ARFilter(noise_psd[:,t], ARFilter_length)
-            ARFilters[:,t] = ARFilter_a
+            ARFilters[t] = ARFilter_a
             #Filtering x
-            xWhitened[:,t] = sig.lfilter(ARFilter_a, [1], x_windowed)
+            xWhitened[t] = sig.lfilter(ARFilter_a, [1], x_windowed)
         else:
-            xWhitened[:,t] = x_windowed
-        xChopped[:,t] = x_windowed
+            xWhitened[t] = x_windowed
+        xChopped[t] = x_windowed
     return xWhitened, xChopped, ARFilters
 
 
@@ -124,8 +127,8 @@ def compute_stft_from_whitened(xWhitened:npt.ArrayLike ,window_type:str ='hann')
     """
     if window_type==None:
         window_type=='hann'
-    xWhitened_stft = np.zeros((np.shape(xWhitened)[0]//2+1, np.shape(xWhitened)[1]), dtype = 'complex128')
-    window = sig.get_window(window_type, np.shape(xWhitened)[0])
+    xWhitened_stft = np.zeros((np.shape(xWhitened)[1]//2+1, np.shape(xWhitened)[0]), dtype = 'complex128')
+    window = sig.get_window(window_type, np.shape(xWhitened)[1])
     for t in range(np.shape(xWhitened_stft)[1]):
-        xWhitened_stft[:,t] = np.fft.rfft(xWhitened[:,t]*window)
+        xWhitened_stft[:,t] = np.fft.rfft(xWhitened[t]*window)
     return xWhitened_stft

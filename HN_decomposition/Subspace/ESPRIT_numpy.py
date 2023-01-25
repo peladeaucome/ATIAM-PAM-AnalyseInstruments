@@ -18,8 +18,8 @@ def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
     complexAmp =np.linalg.pinv(V)@x
 
     # Separating the amplitudes and phases
-    amp = np.abs(complexAmp)
-    phase =np.angle(complexAmp)
+    # amp = np.abs(complexAmp)
+    # phase =np.angle(complexAmp)
     
     return complexAmp
 
