@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.sparse.linalg import inv
 
 def ravel_index_from_true_indexes(x_idx, y_idx, Nx) :
     return y_idx*Nx + x_idx
@@ -18,7 +19,8 @@ def find_nearest_index(array, value, nearest_value=False):
         return idx, array[idx]
     return idx
 
-def corde(T = 73.9,rho_l = 3.61 * 10**(-3)):
+def corde(T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E = 4, I = 10**(-5)):
+
     """
     Rends dans l'ordre : 
     - MS : matrice des masses modales de la corde
@@ -28,13 +30,15 @@ def corde(T = 73.9,rho_l = 3.61 * 10**(-3)):
     - NmS : nombre de mode de la corde
     - xS : vecteur spatial discret de la corde
     """
+
     ## Paramètres physique
-    L = 0.65 #longueur de corde (m) # à changer dans la def de simu_config si on change
+    # L = 0.65 #longueur de corde (m) # à changer dans la def de simu_config si on change
     #f1 = 110 #freq de la corde (hz)
-   # T = 73.9 #tension de la corde (N)
+    # T = 73.9 #tension de la corde (N)
     #rho_l = 3.61 * 10**(-3) #masse linéique (kg/m)
     ct = np.sqrt(T/rho_l) #célérité des ondes transverse (M/s)
-    B = 4*10**(-5) #coefficient d'inarmonicité : B = E*I (N*m**2)
+    B = E * I
+    #B = 4*10**(-5) #coefficient d'inarmonicité : B = E*I (N*m**2)
 
     ## Paramètres de discrétisation
     NmS = 100 #Modes de cordes
@@ -75,15 +79,16 @@ def plaque_article():
     KB = np.diag(MmB*wnB**2)
     return(MB,CB,KB,phiB_NxNy_NmB,NmB)
 
-def plaque_model():
+def plaque_model(h = 2.8e-3,nu = 0.2,E = 7e9,rho = 400,Lx = 40e-2,Ly = 40e-2):
     ## Paramètres physique
-    h = 2.8e-3 #Epaisseur de  la plaque (m)
-    nu = 0.2 #Coeff de poisson (Pa)
-    E = 7e9 #Module de Young (Pa)
-    rho = 400 #Masse volumique (kg/m3)
-    D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque
-    eta = 0.02 #Amortissement interne à la plaque
-    Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
+    #h = 2.8e-3 #Epaisseur de  la plaque (m)
+    #nu = 0.2 #Coeff de poisson (Pa)
+    #E = 7e9 #Module de Young (Pa)
+    #rho = 400 #Masse volumique (kg/m3)
+    ##D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque  : t'en as pas besoin???
+    ##eta = 0.02 #Amortissement interne à la plaque à réfléchir 
+    #Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
+    #Lz = h t'en as pas besoin??
 
     ## Paramètres de discrétisation
     NB = 4          #Nombre de modes selon x
@@ -213,10 +218,10 @@ def UK_params(M,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,article = True, model = Fals
         ])
 
 
-
-    B = Aa @ np.linalg.inv(M**(1/2))
+    M_inv_demi = np.linalg.inv(M**(1/2))
+    B = Aa @ M_inv_demi
     Bplus = B.T @ np.linalg.inv((B @ B.T))
-    W = np.eye(NmS+NmB) - np.linalg.inv(M**(1/2)) @ Bplus @ Aa
+    W = np.eye(NmS+NmB) - M_inv_demi @ Bplus @ Aa
 
     Z = - M ** (1/2) @ Bplus @ Aa #pour calculer la force ensuite
 
@@ -256,7 +261,7 @@ def Simu_config(xS,Fe = 44100, T = 3):
     FextS_NxS_Nt = np.zeros((NxS,Nt))
     FextS_NxS_Nt[xe_idx, : ] = Fext
 
-    plot_fext = True
+    plot_fext = False
     if plot_fext :
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
