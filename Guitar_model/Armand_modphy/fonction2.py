@@ -1,5 +1,3 @@
-## aller voir fonction2 qui fait pareil mais en mieux
-## je garde ca en backup
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import inv
@@ -26,6 +24,7 @@ def corde(T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E = 4, I = 10**(-5)):
     """
     Rends dans l'ordre : 
     - MS : matrice des masses modales de la corde
+    - MS_inv : matrice des masses modales inverses de la corde
     - CS : matrice des C modales de la corde
     - KS : matrice des K modaux de la corde
     - phiS_Nx_NmS : déformés de la corde
@@ -34,9 +33,9 @@ def corde(T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E = 4, I = 10**(-5)):
     """
 
     ## Paramètres physique
-    # L = 0.65 #longueur de corde (m) # à changer dans la def de simu_config si on change
+    #L = 0.65 #longueur de corde (m) # à changer dans la def de simu_config si on change
     #f1 = 110 #freq de la corde (hz)
-    # T = 73.9 #tension de la corde (N)
+    #T = 73.9 #tension de la corde (N)
     #rho_l = 3.61 * 10**(-3) #masse linéique (kg/m)
     ct = np.sqrt(T/rho_l) #célérité des ondes transverse (M/s)
     B = E * I
@@ -62,13 +61,23 @@ def corde(T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E = 4, I = 10**(-5)):
     MmS = rho_l * L / 2  #Masses modales de la corde (kg)
 
     ### Matrices modales
-    MS = np.diag(np.array([MmS]*NmS))
+    MS = np.eye(NmS) * MmS
     CS = MS * np.diag(2*wnS*xinS)
     KS = MS*np.diag(wnS**2)
+    MS_inv = np.eye(NmS) * (1/MmS) 
 
-    return(MS,CS,KS, phiS_Nx_NmS,NmS,xS)
+    return(MS,MS_inv, CS,KS, phiS_Nx_NmS,NmS,xS)
 
 def plaque_article():
+    """
+    rends dans l'ordre : 
+    - MB : matrice des masses modales de la plaque
+    - MB_inv : matrice inverse des masses modales de la plaque
+    - CB : matrice des C modales de la plaque
+    - KB : matrice des K modales de la plaque
+    - phiB_NxNy_NmB : modes de la plaques
+    - NmB : nombre de mode
+    """
     xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4,0.9,0.7,0.7,0.6,1.4,1.0,1.3])/100
     fnB = np.array([78.3,100.2,187.3, 207.8, 250.9,291.8,314.7,344.5,399.0,429.6,482.9,504.2,553.9,580.3,645.7,723.5])
     MmB = np.array([2.91,0.45,0.09,0.25,2.65,9.88,8.75,8.80,0.90,0.41,0.38,1.07,2.33,1.36,2.02,0.45])
@@ -77,11 +86,23 @@ def plaque_article():
     wnB = 2 * np.pi * fnB
     phiB_NxNy_NmB = np.ones(NmB)
     MB = np.diag(MmB)
+    MB_inv = np.diag(1/MmB)
     CB = np.diag(2*MmB*wnB*xinB)
     KB = np.diag(MmB*wnB**2)
-    return(MB,CB,KB,phiB_NxNy_NmB,NmB)
+    return(MB,MB_inv,CB,KB,phiB_NxNy_NmB,NmB)
 
 def plaque_model(h = 2.8e-3,nu = 0.2,E = 7e9,rho = 400,Lx = 40e-2,Ly = 40e-2):
+    """
+    rends dans l'ordre : 
+    - MB : matrice des masses modales de la plaque
+    - MB_inv : matrice inverse des masses modales de la plaque
+    - CB : matrice des C modales de la plaque
+    - KB : matrice des K modales de la plaque
+    - phiB_NxNy_NmB : modes de la plaques
+    - NmB : nombre de mode
+    - x : discrétisation de la plaque en x
+    - y : discrétisation de la plaque en y
+    """
     ## Paramètres physique
     #h = 2.8e-3 #Epaisseur de  la plaque (m)
     #nu = 0.2 #Coeff de poisson (Pa)
@@ -166,18 +187,22 @@ def plaque_model(h = 2.8e-3,nu = 0.2,E = 7e9,rho = 400,Lx = 40e-2,Ly = 40e-2):
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
     MB = np.eye(NmB)
-
+    MB_inv = MB
     CB = np.diag(2*MmB*wnB*xinB)
     KB = np.diag(MmB*wnB**2)
 
-    return(MB,CB,KB,phiB_NxNy_NmB,NmB,x,y)
+    return(MB,MB_inv,CB,KB,phiB_NxNy_NmB,NmB,x,y)
 
-def créer_matrice(MS,MB,KS,KB,CS,CB):
+def créer_matrice(MS,MB,MS_inv,MB_inv,KS,KB,CS,CB):
     NmB = MB.shape[0]
     NmS = MS.shape[0]
     M = np.block([
                  [MS               , np.zeros((NmS,NmB))],
-                [np.zeros((NmB,NmS)), MB               ]
+                [ np.zeros((NmB,NmS)), MB               ]
+                ])
+    M_inv = np.block([
+                 [MS_inv           , np.zeros((NmS,NmB))],
+                 [np.zeros((NmB,NmS)), MB_inv              ]
                 ])
 
     K = np.block([
@@ -189,9 +214,9 @@ def créer_matrice(MS,MB,KS,KB,CS,CB):
                 [CS               , np.zeros((NmS,NmB))],
                 [np.zeros((NmB,NmS)), CB               ]
                 ])
-    return(M,K,C)
+    return(M,M_inv,K,C)
 
-def UK_params(M,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,article = True, model = False, mode = 'A1',x =0, y = 0):
+def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,article = True, model = False, mode = 'A1',x =0, y = 0):
     phiSB = phiS_Nx_NmS[-1,:] #déformée de la corde au point du chevalet
     phiSF = phiS_Nx_NmS[250,:] #déformée de la corde au point d'appuis du doigt du guitariste
 
@@ -220,7 +245,7 @@ def UK_params(M,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,article = True, model = Fals
         ])
 
 
-    M_inv_demi = np.linalg.inv(M**(1/2))
+    M_inv_demi = np.sqrt(M_inv)
     B = Aa @ M_inv_demi
     Bplus = B.T @ np.linalg.inv((B @ B.T))
     W = np.eye(NmS+NmB) - M_inv_demi @ Bplus @ Aa
@@ -281,8 +306,7 @@ def Simu_config(xS,Fe = 44100, T = 3):
     return(t,FextS_NxS_Nt)
 
 
-def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M,C,K,Z,W):
-    
+def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
     F_pro_cor = phiS_Nx_NmS.T @ FextS_NxS_Nt # projection de la force
     point_temp = len(t)
     #print(NmS,NmB,point_temp,FextS_NxS_Nt.shape)
@@ -296,22 +320,23 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M,C,K,Z,W):
     q_d_temp = np.zeros(NmS + NmB)
     q_d_temp_demi = np.zeros_like(q_d_temp)
     q_pour_f = np.zeros_like(q_temp)
-    M_inv = np.linalg.inv(M)
 
     #shéma
-    for i in range(point_temp-1):
-        h = t[i+1] - t[i]   #step d'intégration
+    h = t[1] - t[0] #step d'intégration
+
+    for i in range(point_temp - 1):
         q_temp[:,i+1] = q_temp[:,i] + h * q_d_temp + 0.5 * h**2 * q_dd_temp[:,i]
         q_d_temp_demi = q_d_temp + 0.5 * h * q_dd_temp[:,i]
 
         F_temp = - C @ q_d_temp_demi - K @ q_temp[:,i+1] + F_pro_tot[:,i+1]
-        q_u_dd_temp = M_inv @ F_temp
-        q_pour_f[:,i+1] = q_u_dd_temp
+        q_pour_f[:,i+1] = M_inv @ F_temp
 
-        q_dd_temp[:,i+1] = W @ q_u_dd_temp
+        q_dd_temp[:,i+1] = W @  q_pour_f[:,i+1]
 
         q_d_temp = q_d_temp + 0.5 * h * (q_dd_temp[:,i] + q_dd_temp[:,i+1])
+
     Q = q_temp
 
     F_c = Z @ q_pour_f
+
     return(Q,F_c)
