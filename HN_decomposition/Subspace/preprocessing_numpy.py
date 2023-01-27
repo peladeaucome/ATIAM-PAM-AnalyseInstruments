@@ -7,6 +7,7 @@ import numpy.typing as npt
 def rankFilter_stft(x_stft:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:float = .5):
     """
     Returns the noise PSD estimation
+
     args :
         - x_psd : array-like
             input STFT (PSD)
@@ -53,16 +54,17 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     #ARFilter_a = np.concatenate((np.ones(1), -np.dot(scipy.linalg.inv(R), r)))
     return ARFilter_a
 
-def whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
+def window_and_whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
     """
     Whitens each window of x
+
     args :
         - x : array-like
             input signal
         - window_length : int
             length of the windows
         - hop_length : int
-            number of samples taat
+            number of samples gap between adjacent windows
         - rankFilter_bins : int
             size of the rank filter
         - rankFilter_rank : float or int
@@ -80,7 +82,7 @@ def whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter
         - xChopped : array-like
             each time frame of the original signal
         - ARFilters : array-like
-            coeeficients of the ARFilters for each time frame
+            coefficients of the AR-filters for each time frame
     """
     x_stft = librosa.stft(
         x,
@@ -111,6 +113,52 @@ def whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter
             xWhitened[t] = x_windowed
         xChopped[t] = x_windowed
     return xWhitened, xChopped, ARFilters
+
+
+def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
+    """
+    Applies a filter to the input signal so that the underlying noise has a flat spectrum.
+
+    args :
+        - x : array-like
+            input signal
+        - rankFilter_bins : int
+            size of the rank filter
+        - rankFilter_rank : float or int
+            rank of the rank filter, which must be between 0 and 1
+        - ARFilter_length : int
+            size of he auto-regressive filter
+        - threshold : float
+            RMS threshold below which the signal is left unfiltered to avoid computation problems
+        - window_type : str
+            window type. Default : hann
+    
+    returns :
+        - xWhitened : array-like, same size as x
+            x which has been 'whitened'
+        - ARFilters : array-like
+            coefficients of the AR-filter
+    """
+    x_fft = np.fft.rfft(x)
+
+    x_psd = np.square(np.abs(x_fft))
+    noise_psd = np.zeros(np.shape(x_psd))
+    for f in range(np.shape(x_psd)[0]):
+        f_lowerBound = max(0, f-rankFilter_bins//2)
+        f_upperBound = min(np.shape(x_psd)[0]-1, f+rankFilter_bins//2)
+        noise_psd[f] = np.quantile(x_psd[f_lowerBound:f_upperBound], q = rankFilter_rank, axis = 0)
+    
+    # Initializing the output arrays
+    xWhitened = np.zeros((np.shape(x)[0]))
+    ARFilter = np.zeros((ARFilter_length+1))
+    
+    if np.std(x)>threshold:
+        ARFilter = compute_ARFilter(noise_psd, ARFilter_length)
+        #Filtering x
+        xWhitened = sig.lfilter(ARFilter, [1], x)
+    else:
+        xWhitened = x
+    return xWhitened, ARFilter
 
 
 def compute_stft_from_whitened(xWhitened:npt.ArrayLike ,window_type:str ='hann'):

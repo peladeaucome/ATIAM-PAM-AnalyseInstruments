@@ -12,6 +12,8 @@ La plaque est supposée simplement appuyée, la normalisation choisie est celle 
 """
 
 import numpy as np
+import sys
+sys.path.append("../")
 from exp_guitare_configs import *
 
 #=========================================== CONFIG CORDE =====================================================================================================
@@ -59,11 +61,11 @@ rho = 400 #Masse volumique (kg/m3)
 rho = table_composite["rho"] #Masse volumique (kg/m3)
 D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque
 eta = 0.02 #Amortissement interne à la plaque
-Lx, Ly, Lz = (40-1)*1e-2, (25.9-1)*1e-2, h #Dimensions (m)
+Lx, Ly, Lz = (40+1)*1e-2, (26+1)*1e-2, h #Dimensions (m)
 
 ## Paramètres de discrétisation
-NB = 7          #Nombre de modes selon x
-MB = 7          #Nombre de modes selon y
+NB = 4          #Nombre de modes selon x
+MB = 4          #Nombre de modes selon y
 NmB = NB * MB      #Nombre de modes total considérés dans le modèle de plaque
 
 Nx = 40
@@ -133,17 +135,22 @@ norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice 
 phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
 ### calcul plaque de l'article
-xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4,0.9,0.7,0.7,0.6,1.4,1.0,1.3])/100
-fnB = np.array([78.3,100.2,187.3, 207.8, 250.9,291.8,314.7,344.5,399.0,429.6,482.9,504.2,553.9,580.3,645.7,723.5])
-MmB = np.array([2.91,0.45,0.09,0.25,2.65,9.88,8.75,8.80,0.90,0.41,0.38,1.07,2.33,1.36,2.02,0.45])
-NmB = len(fnB)
+# xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4,0.9,0.7,0.7,0.6,1.4,1.0,1.3])/100
+#Avec ce qu'on a trouvé (esprit)
+xinB = np.array([-0.0013885 , -0.00140763, -0.00784205, -0.00268754, -0.00230457,
+       -0.00546443, -0.00451449, -0.00932988, -0.00918879, -0.00426891,
+       -0.00486482, -0.01948179, -0.00494489, -0.00680774, -0.01069097,
+       -0.01866193])
+# fnB = np.array([78.3,100.2,187.3, 207.8, 250.9,291.8,314.7,344.5,399.0,429.6,482.9,504.2,553.9,580.3,645.7,723.5])
+# MmB = np.array([2.91,0.45,0.09,0.25,2.65,9.88,8.75,8.80,0.90,0.41,0.38,1.07,2.33,1.36,2.02,0.45])
+# NmB = len(fnB)
 
-wnB = 2 * np.pi * fnB
-phiB_NxNy_NmB = np.ones(NmB)
+# wnB = 2 * np.pi * fnB
+# phiB_NxNy_NmB = np.ones(NmB)
 
 ### Matrices modales
-MB = np.diag(MmB) #article
-#MB = np.eye(NmB) #modele
+# MB = np.diag(MmB) #article
+MB = np.eye(NmB) #modele
 CB = np.diag(2*MmB*wnB*xinB)
 KB = np.diag(MmB*wnB**2)
 

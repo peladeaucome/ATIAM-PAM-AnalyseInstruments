@@ -28,11 +28,13 @@ def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
 def ESPRIT(x:npt.ArrayLike,num_poles:int):
     """
     Performs the ESPRIT algorithm over the input signal
+    
     args :
-        - x : array-like
+        - x : array-like [signal_length]
             input signal
         - num_poles : int
             number of poles to find
+
     returns:
         - poles : array-like
             Complex poles of the signal
