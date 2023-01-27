@@ -33,11 +33,19 @@ A = np.block([
     [ ABG         , ABD      ]
 ])
 
+# B = np.block([
+#     [np.zeros((NmS+NmB, NxS))],
+#     [W @ np.block([
+#         [MSinv @ phiS_Nx_NmS.T],
+#         [np.zeros((NmB, NxS))]
+#         ])]
+# ])
+
 B = np.block([
-    [np.zeros((NmS+NmB, NxS))],
+    [np.zeros((NmS+NmB, NmS))],
     [W @ np.block([
-        [MSinv @ phiS_Nx_NmS.T],
-        [np.zeros((NmB, NxS))]
+        [MSinv],
+        [np.zeros((NmB, NmS))]
         ])]
 ])
 
@@ -57,5 +65,6 @@ D = 0
 sys = control.StateSpace(A,B,C,D)
 
 U = FextS_NxS_Nt
+U = phiS_Nx_NmS.T @ U
 
 t, Q = control.forced_response(sys, T=t, U=U, X0=0)
