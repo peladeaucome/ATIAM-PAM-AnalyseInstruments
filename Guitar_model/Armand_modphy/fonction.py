@@ -1,3 +1,5 @@
+## aller voir fonction2 qui fait pareil mais en mieux
+## je garde ca en backup
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import inv

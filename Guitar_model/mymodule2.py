@@ -203,7 +203,9 @@ def ESPRIT(x, n ,K, return_pos = True) :
     deltak = deltak[p]
 
     if return_pos :
-        return fk[fk>=0], deltak[fk>=0]
+        deltak = deltak[fk>=0]
+        fk = fk[fk>=0]
+        return fk, deltak
     
     return fk, deltak
 
