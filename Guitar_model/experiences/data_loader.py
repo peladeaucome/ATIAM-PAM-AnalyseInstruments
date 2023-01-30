@@ -7,19 +7,22 @@ Ces matrices contiennent toutes les configurations testées.
 - Nc : nombre de corde (6)
 - Np : nombre de plectre (4)
 
-# Outputs
+## Outputs
+
+### Mesures en jeu
 - `jeu_Nta_Ntc_Nc_Np` : arrayLike. 
-Un indice de la matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, dans chaque configuration.
+Un élément de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour une configuration de table, corde, plectre.
 
 Clefs pour les mesures en jeu :
-- "mat_table" : str, matériau de la table
-- "mat_corde" : str, matériau de la corde
-- "acc" : arrayLike, accélération mesurée
-- "fs" : fréquence d'échantillonnage
-- "temps" : arrayLike, vecteur temps associé
+    - "mat_table" : str, matériau de la table
+    - "mat_corde" : str, matériau de la corde
+    - "acc" : arrayLike, accélération mesurée
+    - "fs" : fréquence d'échantillonnage
+    - "temps" : arrayLike, vecteur temps associé
 
+### Mesures des tables
 - `deforme_Nta_Npos`: arrayLike.
-Un indice de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour chaque position de l'accéléro et chaque table.
+Un élément de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour une configuration d'accéléro, table.
 
 Clefs pour les mesures des tables :
 - "mat_table" : str, matériau de la table
@@ -109,3 +112,4 @@ for it, table in enumerate(os.listdir(path_to_folder)) :
                 # print(itable, idx_pos)
                 deforme_Nta_Npos[itable, idx_pos] = data_dict
         itable += 1
+
