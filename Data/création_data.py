@@ -1,10 +1,11 @@
-import param_corde.corde_article as c
-import param_table.table_composite as t
+
+from corde import parametre_corde
+from table import table
 import Variation as v
 from pyDOE import lhs
 import numpy as np
 
-N_sample = 1000
+
 
 def latin_hypercube_sample(n, dim, bounds):
     """
@@ -25,65 +26,66 @@ def latin_hypercube_sample(n, dim, bounds):
 
     return samples
 
-######################corde : 
+def param_Dataset(N_sample = 1000,article= False,acier_C=False,composite_T = False, acier_T = False):
 
-#mesuré : 
-T_min = c.T - v.T_delta
-T_max = c.T + v.T_delta
+    ######################corde : 
+    T,rho_l,Lc,r,B = parametre_corde(article=article, acier=acier_C)
 
-rho_l_min = c.rho_l - v.rho_delta
-rho_l_max = c.rho_l + v.rho_delta
+    T_min = T - v.T_delta
+    T_max = T + v.T_delta
 
-Lc_min = c.Lc - v.Lc_delta
-Lc_max = c.Lc + v.Lc_delta
+    rho_l_min = rho_l - v.rho_delta
+    rho_l_max = rho_l + v.rho_delta
 
-r_min = c.r - v.r_delta
-r_max = c.r + v.r_delta
+    Lc_min = Lc - v.Lc_delta
+    Lc_max = Lc + v.Lc_delta
 
-B_min =  c.B - v.B_delta
-B_max =  c.B + v.B_delta
+    r_min = r - v.r_delta
+    r_max = r + v.r_delta
 
-#calculé
-masseC_min = rho_l_min * Lc_min
-masseC_max = rho_l_max * Lc_max
+    B_min =  B - v.B_delta
+    B_max =  B + v.B_delta
 
-I_min =  masseC_min * r_min ** 2 / 2
-I_max = masseC_max * r_max **2 / 2
+    #calculé
+    masseC_min = rho_l_min * Lc_min
+    masseC_max = rho_l_max * Lc_max
+
+    I_min =  masseC_min * r_min ** 2 / 2
+    I_max = masseC_max * r_max **2 / 2
+
+    E_corde_min = B_min / I_min
+    E_corde_max = B_max / I_max
+
+    ########## table : 
+    masseT,L_x,L_y,h,nu,ET = table(composite = composite_T, acier = acier_T)
+    
+    masseT_min = masseT - v.masseT_delta
+    masseT_max = masseT + v.masseT_delta
+
+    L_xmin = L_x - v.L_xdelta
+    L_xmax = L_x + v.L_xdelta
+
+    L_ymin = L_y - v.L_ydelta
+    L_ymax = L_y + v.L_ydelta
+
+    h_min = h - v.h_delta
+    h_max = h + v.h_delta
+
+    nu_min = nu - v.nu_delta
+    nu_max = nu - v.nu_delta
+
+    ET_min = ET - v.ET_delta
+    ET_max = ET + v.ET_delta
+
+    #calculé : 
+    rhoT_min = masseT_min / (L_xmax * L_ymax * h_max)  #masse volumique composite
+    rhoT_max = masseT_max / (L_ymin * h_min * L_xmin)  #masse volumique composite
 
 
-E_corde_min = B_min / I_min
-E_corde_max = B_max / I_max
+    #### Création des paramètres dataset
 
-
-########## table : 
-
-#mesuré : 
-masseT_min = t.masseT - v.masseT_delta
-masseT_max = t.masseT + v.masseT_delta
-
-L_xmin = t.L_x - v.L_xdelta
-L_xmax = t.L_x + v.L_xdelta
-
-L_ymin = t.L_y - v.L_ydelta
-L_ymax = t.L_y + v.L_ydelta
-
-h_min = t.h - v.h_delta
-h_max = t.h + v.h_delta
-
-nu_min = t.nu - v.nu_delta
-nu_max = t.nu - v.nu_delta
-
-ET_min = t.ET - v.ET_delta
-ET_max = t.ET + v.ET_delta
-
-#calculé : 
-rhoT_min = masseT_min / (L_xmax * L_ymax * h_max)  #masse volumique composite
-rhoT_max = masseT_max / (L_ymin * h_min * L_xmin)  #masse volumique composite
-
-
-#### Création des paramètres dataset
-
-bounds = [(T_min,T_max),(rho_l_min,rho_l_max),(Lc_min,Lc_max), ( E_corde_min,E_corde_max),(I_min,I_max),(h_min,h_max),(nu_min,nu_max),
+    bounds = [(T_min,T_max),(rho_l_min,rho_l_max),(Lc_min,Lc_max), ( E_corde_min,E_corde_max),(I_min,I_max),(h_min,h_max),(nu_min,nu_max),
            (ET_min,ET_max),(rhoT_min,rhoT_max),(L_xmin,L_xmax),(L_ymin,L_ymax)]
 
-param_dataset = latin_hypercube_sample(N_sample,11,bounds)
+    param_dataset = latin_hypercube_sample(N_sample,11,bounds)
+    return(N_sample,param_dataset)
