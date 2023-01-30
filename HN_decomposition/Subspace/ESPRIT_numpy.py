@@ -3,11 +3,27 @@ import numpy.typing as npt
 import scipy
 
 def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
+    """
+    Estimates the complex amplitudes of the signal poles given their frequencies
+    and damping (or growing) factors using the least-squares method :
+
+    args :
+        - x : array-like
+            Input signal
+        - damp : array-like
+            damping (or growing) factors
+        - redFreq : array-like
+            Normlized frequencies
+    
+    Returns :
+        - complexAmp : array-like, complex
+            complex amplitudes of the poles
+
+    """
     #Estimation des amplitudes et des phases
     N=len(x)
     num_poles=len(redFreq)
     t = np.arange(0,N)
-    k=np.arange(0,num_poles)
 
     # Computing the Vandermonde matrix V
 
@@ -15,7 +31,7 @@ def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
     V = np.exp(log_V)
 
     # Computing the complex vector of amplitudes and initial phases
-    complexAmp =np.linalg.pinv(V)@x
+    complexAmp = np.linalg.pinv(V)@x
 
     # Separating the amplitudes and phases
     # amp = np.abs(complexAmp)
@@ -77,9 +93,14 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
 def norm2(x):
         return np.sum(np.square(x))
 
-def HRHATRAC_numpy(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1, mu_L:float = .5, mu_V = .5):
+def ddiag(x):
+    return np.diag(np.diag(x))
+
+def HRHATRAC(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1,
+                   mu_L:float = .5, mu_V:float = .5):
     """
-    Performs the HRAHATRAC algorithm [1] with the exponential window Fast Approximate Power Iteration subspace-tracker [2].
+    Performs the HRAHATRAC algorithm [1] with the exponential window Fast
+    Approximate Power Iteration subspace-tracker [2].
    
     args :
         - x : array-like
@@ -98,32 +119,40 @@ def HRHATRAC_numpy(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1, mu_L:f
         - complexAmp_list : array-like
             List of the domplex amplitudes of the signal poles
         
-
     References :
-    [1] David, B., R. Badeau, and G. Richard. 'HRHATRAC Algorithm for Spectral Line Tracking of Musical Signals.'
-    In 2006 IEEE International Conference on Acoustics Speed and Signal Processing Proceedings,
-    3:III-45-III-48. Toulouse, France: IEEE, 2006. https://doi.org/10.1109/ICASSP.2006.1660586.
 
-    [2] Badeau, R., B. David, and G. Richard. 'Fast Approximated Power Iteration Subspace Tracking.'
-    IEEE Transactions on Signal Processing 53, no. 8 (August 2005): 2931-41. https://doi.org/10.1109/TSP.2005.850378.
+    [1] David, B., R. Badeau, and G. Richard. 'HRHATRAC Algorithm for Spectral
+    Line Tracking of Musical Signals.' In 2006 IEEE International Conference on
+    Acoustics Speed and Signal Processing Proceedings, 3:III-45-III-48.
+    Toulouse, France: IEEE, 2006. https://doi.org/10.1109/ICASSP.2006.1660586.
+
+    [2] Badeau, R., B. David, and G. Richard. 'Fast Approximated Power Iteration
+    Subspace Tracking.' IEEE Transactions on Signal Processing 53, no. 8
+    (August 2005): 2931-41. https://doi.org/10.1109/TSP.2005.850378.
     """
 
     # Getting the number of samples in each window and the number of samples
-    window_size, num_windows = np.shape(xChopped)
+    num_windows, window_size  = np.shape(xChopped)
 
     #Initializing output arrays
-    poles_list = np.matrix(np.zeros((num_poles, num_windows)), dtype= 'complex128')
-    complexAmp_list = np.matrix(np.zeros((num_poles, num_windows), dtype = 'complex128'))
+    poles_list = np.matrix(np.zeros((num_windows, num_poles)),
+                                    dtype= 'complex128')
+    #complexAmp_list = np.matrix(np.zeros((num_poles, num_windows),
+    #                                     dtype = 'complex128'))
 
     # Initializing
-    W = np.matrix(np.concatenate((np.eye(num_poles, dtype = 'complex128'),np.zeros((window_size- num_poles, num_poles), dtype = 'complex128')), axis = 0), dtype = 'complex128')
+    W = np.matrix(np.concatenate((np.eye(num_poles, dtype = 'complex128'),
+                                  np.zeros((window_size- num_poles, num_poles),
+                                           dtype = 'complex128')), axis = 0),
+                  dtype = 'complex128')
+    
     Psi = np.matrix(W[:-1,:].H@W[1:,:], dtype=  'complex128')
     
     Z = np.matrix(np.eye(num_poles, dtype = 'complex128'))
     poles = np.zeros(num_poles, dtype = 'complex128')
 
     for window_idx in range(num_windows):
-        x = np.matrix(xChopped[:,window_idx], dtype = "complex128").T
+        x = np.matrix(xChopped[window_idx], dtype = "complex128").T
 
         # FAPI
         y = W.H@x
@@ -153,16 +182,17 @@ def HRHATRAC_numpy(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1, mu_L:f
         Phi = Psi + nu@phi.H/(1 - norm2(nu))
 
         # Updating the poles
-
-        if window_idx < 1:
+        if window_idx == 0:
             poles, V = np.linalg.eig(Phi)
             Lambda = np.matrix(np.diag(poles), dtype = 'complex128')
             Lambda_inv = np.matrix(np.diag(1/poles), dtype = 'complex128')
         else:
-            Lambda = (1-mu_L)*Lambda + mu_L*np.diag(np.diag(np.linalg.inv(V)@Phi@V))
-            Lambda_inv = np.matrix(np.diag(1/np.diag(Lambda)), dtype='complex128')
+            Lambda = (1-mu_L)*Lambda + mu_L*ddiag(np.linalg.inv(V)@Phi@V)
+            Lambda_inv = np.matrix(np.diag(1/np.diag((Lambda))),
+                                   dtype='complex128')
             E_V = V - Phi@V@Lambda_inv
             V = (1-mu_V)*V + mu_V*(Phi@V@Lambda_inv + Phi.H@E_V@Lambda_inv.H)
-            V = V/np.sqrt(np.sum(np.square(np.abs(V)), axis = 0)) # Normalization
-        poles_list[:,window_idx] = np.diag(Lambda)[:,None]
+            # Normalizing the columns of V to avoid numerical instability
+            V = V/np.sqrt(np.sum(np.square(np.abs(V)), axis = 0))
+        poles_list[window_idx] = np.diag(Lambda)
     return poles_list
