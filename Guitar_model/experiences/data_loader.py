@@ -7,17 +7,20 @@ Ces matrices contiennent toutes les configurations testées.
 - Nc : nombre de corde (6)
 - Np : nombre de plectre (4)
 
-# Outputs
+## Outputs
+
+### Mesures en jeu
 - `jeu_Nta_Ntc_Nc_Np` : arrayLike. 
 Un indice de la matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, dans chaque configuration.
 
 Clefs pour les mesures en jeu :
-- "mat_table" : str, matériau de la table
-- "mat_corde" : str, matériau de la corde
-- "acc" : arrayLike, accélération mesurée
-- "fs" : fréquence d'échantillonnage
-- "temps" : arrayLike, vecteur temps associé
+    - "mat_table" : str, matériau de la table
+    - "mat_corde" : str, matériau de la corde
+    - "acc" : arrayLike, accélération mesurée
+    - "fs" : fréquence d'échantillonnage
+    - "temps" : arrayLike, vecteur temps associé
 
+### Mesures des tables
 - `deforme_Nta_Npos`: arrayLike.
 Un indice de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour chaque position de l'accéléro et chaque table.
 
