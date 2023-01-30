@@ -11,7 +11,7 @@ Ces matrices contiennent toutes les configurations testées.
 
 ### Mesures en jeu
 - `jeu_Nta_Ntc_Nc_Np` : arrayLike. 
-Un indice de la matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, dans chaque configuration.
+Un élément de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour une configuration de table, corde, plectre.
 
 Clefs pour les mesures en jeu :
     - "mat_table" : str, matériau de la table
@@ -22,7 +22,7 @@ Clefs pour les mesures en jeu :
 
 ### Mesures des tables
 - `deforme_Nta_Npos`: arrayLike.
-Un indice de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour chaque position de l'accéléro et chaque table.
+Un élément de cette matrice correspond à un dictionnaire avec les clefs utiles mesurées lors de l'expérience, pour une configuration d'accéléro, table.
 
 Clefs pour les mesures des tables :
 - "mat_table" : str, matériau de la table
@@ -112,3 +112,4 @@ for it, table in enumerate(os.listdir(path_to_folder)) :
                 # print(itable, idx_pos)
                 deforme_Nta_Npos[itable, idx_pos] = data_dict
         itable += 1
+
