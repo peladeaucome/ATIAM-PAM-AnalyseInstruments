@@ -85,12 +85,28 @@ def window_and_whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int,
             coefficients of the AR-filters for each time frame
     """
     x_stft = librosa.stft(
-        x,
+        np.real(x),
         n_fft = window_length,
         hop_length=hop_length,
         center=False,
         window=window_type
     )
+
+    #_, _, x_stft = sig.stft(
+    #    x,
+    #    fs=1,
+    #    window = window_type,
+    #    nperseg = window_length,
+    #    noverlap = window_length-hop_length,
+    #    nfft = window_length,
+    #    detrend = False,
+    #    return_onesided = True,
+    #    scaling = 'spectrum'
+    #)
+    #print(x_stft.shape)
+    #x_stft = x_stft.T
+    #print(x_stft.shape)
+    
     noise_psd = rankFilter_stft(
         x_stft = x_stft,
         rankFilter_bins = rankFilter_bins,
@@ -98,8 +114,8 @@ def window_and_whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int,
     )
     
     # Initializing the output arrays
-    xWhitened = np.zeros((np.shape(x_stft)[1], window_length))
-    xChopped = np.zeros((np.shape(x_stft)[1], window_length))
+    xWhitened = np.zeros((np.shape(x_stft)[1], window_length), dtype = 'complex128')
+    xChopped = np.zeros((np.shape(x_stft)[1], window_length), dtype = 'complex128')
     ARFilters = np.zeros((np.shape(x_stft)[1], ARFilter_length+1))
 
     for t in range(np.shape(x_stft)[1]):
@@ -113,6 +129,34 @@ def window_and_whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int,
             xWhitened[t] = x_windowed
         xChopped[t] = x_windowed
     return xWhitened, xChopped, ARFilters
+
+def window_signal(x:npt.ArrayLike, window_length:int, hop_length:int, window_type:str = 'boxcar'):
+    """
+    Windows x
+
+    args :
+        - x : array-like
+            input signal
+        - window_length : int
+            length of the windows
+        - hop_length : int
+            number of samples gap between adjacent windows
+        - window_type : str
+            window type. Default : hann
+    
+    returns :
+        - xChopped : array-like
+            each time frame of the original signal
+    """
+    
+    num_windows = int(np.ceil((len(x)-window_length)/hop_length))+1
+
+    # Initializing the output arrays
+    xChopped = np.zeros((num_windows, window_length), dtype = 'complex128')
+
+    for t in range(num_windows):
+        xChopped[t] = x[t*hop_length:t*hop_length+window_length]
+    return xChopped
 
 
 def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
@@ -139,7 +183,10 @@ def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARF
         - ARFilters : array-like
             coefficients of the AR-filter
     """
-    x_fft = np.fft.rfft(x)
+    if window_type==None:
+        window_type=='hann'
+    
+    x_fft = np.fft.rfft(x*sig.get_window(window_type, len(x)))
 
     x_psd = np.square(np.abs(x_fft))
     noise_psd = np.zeros(np.shape(x_psd))
@@ -149,7 +196,7 @@ def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARF
         noise_psd[f] = np.quantile(x_psd[f_lowerBound:f_upperBound], q = rankFilter_rank, axis = 0)
     
     # Initializing the output arrays
-    xWhitened = np.zeros((np.shape(x)[0]))
+    xWhitened = np.zeros((np.shape(x)[0]), dtype = 'complex128')
     ARFilter = np.zeros((ARFilter_length+1))
     
     if np.std(x)>threshold:
@@ -161,7 +208,7 @@ def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARF
     return xWhitened, ARFilter
 
 
-def compute_stft_from_whitened(xWhitened:npt.ArrayLike ,window_type:str ='hann'):
+def compute_stft_from_windowed(xWhitened:npt.ArrayLike ,window_type:str ='hann'):
     """
     Computes the STFT from the whitened signal array
     args :
