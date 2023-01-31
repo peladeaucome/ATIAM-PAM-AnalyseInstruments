@@ -13,33 +13,27 @@ Ce code permet de configurer l'espace d'état du modèle et de lancer une simula
 from guitare_config import *
 from UK_parameters import *
 from simu_config import t, FextS_NxS_Nt
-
 import control #C'est un module à télécharger qui permet de simuler des espaces d'état : https://python-control.readthedocs.io/en/0.9.1/
 
-MSinv = np.linalg.inv(MS)
-MBinv = np.linalg.inv(MB)
+# MSinv = np.linalg.inv(MS)
+# MBinv = np.linalg.inv(MB)
+# MSinv = ... #Voir guitare_config.py
+MBinv = MB
+MSinv = MSinv
 
 ABG = W @ np.block([
-    [-MSinv @ KS, np.zeros((NmS,NmB))],
-    [np.zeros((NmB, NmS)), -MBinv @ KB]
+    [-MSinv.dot(KS), np.zeros((NmS,NmB))],
+    [np.zeros((NmB, NmS)), -MBinv.dot(KB)]
 ])
 ABD = W @ np.block([
-    [-MSinv @ CS, np.zeros((NmS,NmB))],
-    [np.zeros((NmB, NmS)), -MBinv @ CB]
+    [-MSinv.dot(CS), np.zeros((NmS,NmB))],
+    [np.zeros((NmB, NmS)), -MBinv.dot(CB)]
 ])
 
 A = np.block([
     [np.zeros((NmS+NmB,NmS+NmB)) , np.eye(NmS+NmB)],
     [ ABG         , ABD      ]
 ])
-
-# B = np.block([
-#     [np.zeros((NmS+NmB, NxS))],
-#     [W @ np.block([
-#         [MSinv @ phiS_Nx_NmS.T],
-#         [np.zeros((NmB, NxS))]
-#         ])]
-# ])
 
 B = np.block([
     [np.zeros((NmS+NmB, NmS))],
@@ -64,7 +58,6 @@ D = 0
 
 sys = control.StateSpace(A,B,C,D)
 
-U = FextS_NxS_Nt
-U = phiS_Nx_NmS.T @ U
+U = phiS_Nx_NmS.T @ FextS_NxS_Nt
 
 t, Q = control.forced_response(sys, T=t, U=U, X0=0)

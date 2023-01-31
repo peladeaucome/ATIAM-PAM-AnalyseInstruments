@@ -37,7 +37,7 @@ xS = np.linspace(0,L,NxS) #Vecteur de la corde
 phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis]/2/L) #Déformées d'une corde fixe aux extrémités
 pnS = (2 * NnS - 1) * np.pi / (2 * L)
 fnS = (ct / 2 / np.pi) * pnS * (1 + pnS**2 * B / (2 * T)) #Fréquences propres de la corde (hz)
-print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
+# print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
 wnS = 2*np.pi*fnS
 
 etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
@@ -46,7 +46,8 @@ xinS = 1/2 * ( T*(etaf + etaA/2/np.pi/fnS) + etaB*B*pnS**2 ) /(T + B*pnS**2) #Am
 MmS = rho_l * L / 2  #Masses modales de la corde (kg)
 
 ### Matrices modales
-MS = np.diag(np.array([MmS]*NmS))
+MS = np.eye(NmS)*MmS
+MSinv = np.eye(NmS)*1/MmS
 CS = MS * np.diag(2*wnS*xinS)
 KS = MS*np.diag(wnS**2)
 
@@ -104,7 +105,7 @@ tri_idx = np.argsort(wnB)
 
 wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant
 fnB = wnB/(2*np.pi)
-print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
+# print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
 xinB = np.array([eta/2]*NmB)
 NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 

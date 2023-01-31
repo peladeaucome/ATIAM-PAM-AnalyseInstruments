@@ -19,9 +19,9 @@ import matplotlib.pyplot as plt
 # Vecteur temps
 Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
 Fe = 16000
-print(f"Fréquence d'échantillonage : {Fe} Hz")
+# print(f"Fréquence d'échantillonage : {Fe} Hz")
 T = 3 #Temps d'acquisition (s)
-print(f"Temps d'acquisition : {T} s")
+# print(f"Temps d'acquisition : {T} s")
 t = np.linspace(0, T, T*Fe) #Vecteur temps
 Nt = len(t)
 
@@ -36,7 +36,7 @@ xe_idx = u.find_nearest_index(xS, 0.9*L)
 FextS_NxS_Nt = np.zeros((NxS,Nt))
 FextS_NxS_Nt[xe_idx, : ] = Fext
 
-plot_fext = True
+plot_fext = False
 if plot_fext :
     fig = plt.figure()
     ax1 = fig.add_subplot(111)

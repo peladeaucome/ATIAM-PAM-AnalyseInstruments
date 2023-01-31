@@ -171,15 +171,15 @@ def fft(data,fe) :
 from scipy.linalg import hankel
 def ESPRIT(x, n ,K, return_pos = True) :
     """
-    # Inputs
-    - x : signal portion use to compute the poles
-    - n : should be len(x)//2 by default
-    - K : number of poles to compute with this method
+    ## Inputs
+    - `x` : signal portion use to compute the poles
+    - `n` : should be len(x)//2 by default
+    - `K` : number of poles to compute with this method
 
-    # Ouputs
-    - fk : list of K normalized frequencies of the poles, sorted by increasing frequency
-    - deltak : list of K damping ratios of the poles, with the same sort as frequencies
-    - if return_pos is set to False, it returns also negative poles originally found by the method
+    ## Outputs
+    - `fk` : list of K normalized frequencies of the poles, sorted by increasing frequency
+    - `deltak` : list of K damping ratios of the poles, with the same sort as frequencies
+    - if `return_pos` is set to False, it returns also negative poles originally found by the method
     """
     X = hankel(x[:n],x[n-1:])
     l = X.shape[1]
@@ -194,7 +194,7 @@ def ESPRIT(x, n ,K, return_pos = True) :
 
     PHI1 = (np.linalg.inv((W1_down.conj().T @ W1_down)) @ W1_down.conj().T) @ W1_up
 
-    zk, eig_vect = np.linalg.eig(PHI1)
+    zk, _ = np.linalg.eig(PHI1)
     deltak = np.log(np.abs(zk))
     fk = 1/np.pi/2 * np.angle(zk)
     
@@ -206,10 +206,20 @@ def ESPRIT(x, n ,K, return_pos = True) :
         deltak = deltak[fk>=0]
         fk = fk[fk>=0]
         return fk, deltak
-    
-    return fk, deltak
+    else :
+        return fk, deltak
 
 def LeastSquares(x, delta, f) :
+    """
+    ## Inputs
+    - `x` : signal
+    - `delta` : amortissements
+    - `f` : fréquences (normalisées)
+
+    ## Outputs
+    - `ak` : amplitudes de chaque pic
+    - `phik` : phases de chaque pic
+    """
     N = len(x)
     K = len(delta)
     zk = np.exp(delta + 1j*2*np.pi*f)
@@ -224,7 +234,7 @@ def LeastSquares(x, delta, f) :
 
     return ak, phik
 
-def remove_init_noise(sig, fs, ratio_parameter = 3) :
+def remove_init_noise(sig, fs, method="mean", ratio_parameter = 3, len_noise = 1000) :
     """
     Renvoie le signal tronqué avec le vecteurs temps associé
 
@@ -237,8 +247,12 @@ def remove_init_noise(sig, fs, ratio_parameter = 3) :
     - time : nouveau vecteur temps
     - sig : nouveau signal audio tronqué
     """
-    noise = sig[:1000]
-    noise_threshold = np.mean(np.abs(noise))
+    sig /= np.max(np.abs(sig))
+    noise = sig[:len_noise]
+    if method == "mean" :
+        noise_threshold = np.mean(np.abs(noise))
+    elif method == "max" :
+        noise_threshold = np.max(np.abs(noise))
 
     i=0
     while np.abs(sig[i]) < ratio_parameter*noise_threshold :
@@ -247,3 +261,61 @@ def remove_init_noise(sig, fs, ratio_parameter = 3) :
     sig = sig[i:]
     time = np.arange(len(sig))/fs
     return time, sig
+
+def clean_RI(ri, fs, tol_from_max=0.2, cut_end=None, method="mean", ratio_parameter = 2) :
+    """
+    Ce code permet premièrement de couper le début d'une réponse impulsionnelle (jusqu'à l'impact).
+    Il peut aussi couper la fin en définissant une longueur souhaitée.
+
+    ## Inputs
+    - `ri` : arrayLike, signal brut de la réponse impulsionnelle.
+    - `fs` : int, fréquence d'échantillonnage
+    - `tol_from_max` : float, temps de tolérance autour du maximum pour définir le bruit que l'on coupe.
+    - `cut_end` : None par défaut => pas de coupe à la fin. Sinon, mettre la durée en seconde souhaitée pour la taille de la RI.
+    - `method` : méthode utilisée dans remove_init_noise. "mean" par défaut, "max" est une option.
+    - `ratio_parameter` : paramètre permettant d'ajuster la coupe du bruit initial (2 par défaut).
+
+    ## Outputs
+    - `tRI` : arrayLike, nouveau vecteur temps.
+    - `RI` : réponse impulsionnelle tronquée.
+    """
+
+    len_noise_RI = np.argmax(ri) - int(tol_from_max*fs)
+    tRI, RI = remove_init_noise(ri, fs, len_noise=len_noise_RI, method=method, ratio_parameter=ratio_parameter)
+
+    if cut_end != None :
+        idx_to_cut = int(fs*cut_end)
+        if np.max(np.abs(RI[:idx_to_cut])) < np.max(np.abs(ri)) :
+            print("La première étape n'a pas fonctionnée, veuillez adapter les paramètres")
+            return tRI,RI
+        else :
+            RI = RI[:idx_to_cut]
+            tRI = tRI[:idx_to_cut]
+    return tRI, RI
+
+
+from scipy.signal import butter, sosfilt
+def bandpass_filter(sig, lowcut, highcut, fs, order=5) :
+    """
+    Ce code filtre un signal temporel d'entrée par un passe bande.
+
+    ## Inputs
+    - `sig` : arrayLike, signal a filtrer.
+    - `lowcut` : fréquence de coupure basse du filtre (non normalisés).
+    - `highcut` : fréquence de coupure haute du filtre (non normalisés).
+    - `fs` : fréquence d'échantillonnage du signal.
+    - `order`: optionnel : ordre du filtrage généré.
+
+    ## Outputs
+    - `y` : signal temporel filtré
+    """
+
+    sos = butter(5, np.array([lowcut,highcut]),btype="bandpass", output="sos", fs=fs)
+    y = sosfilt(sos, sig)
+    return y
+
+def time_vector(sig, fs):
+    """
+    Permet de retourner le vecteur temps associé à un signal.
+    """
+    return np.arange(len(sig))/fs
