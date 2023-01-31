@@ -55,7 +55,7 @@ Npos = 2 #Nombre de position de l'accéléro pour la déformé
 deforme_Nta_Npos = np.zeros((Nta, Npos), dtype=object)
 
 
-path_to_folder = "../../../Mesures/Mesures_2023.01.27_LAM/"
+path_to_folder = "../../../Mesures/Mesures_2023.01.27_LAM_normalise/"
 temp_path = path_to_folder
 
 #On parcours les différentes tables utilisées lors des expériences
