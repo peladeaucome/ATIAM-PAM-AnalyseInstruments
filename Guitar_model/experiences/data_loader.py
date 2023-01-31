@@ -41,6 +41,7 @@ from scipy.io import loadmat
 from scipy.signal import oaconvolve
 import os
 import sys
+import mymodule2 as mm
 sys.path.append("../")
 
 Nta = 4 #4 type de tables
@@ -105,9 +106,13 @@ for it, table in enumerate(os.listdir(path_to_folder)) :
                 data_dict["pos"] = f"pos {idx_pos+1}"
                 # data_dict["acc"] = mat["acc_t"].reshape(-1)
                 data_dict["fs"] = int(mat["fs"].reshape(-1))
-                data_dict["temps"] = mat["time"].reshape(-1)
+                # data_dict["temps"] = mat["time"].reshape(-1)
                 # data_dict["mar"] = mat["mar_t"].reshape(-1)
-                data_dict["RI"] = oaconvolve(mat["acc_t"].reshape(-1),mat["mar_t"].reshape(-1))
+                RI = oaconvolve(mat["acc_t"].reshape(-1),mat["mar_t"].reshape(-1))
+                
+                #Nettoyage de la RI (couper le début et la fin)
+                data_dict["tRI"], data_dict["RI"] = mm.clean_RI(RI, data_dict["fs"], method="max", cut_end=1.2)
+
                 data_dict["FRF"] = mat["FRF"].reshape(-1)
                 data_dict["freq"] = mat["freq"].reshape(-1)
 
