@@ -1,3 +1,14 @@
 Guitar_model/Armand_modphy/*
 *.pyc
 *.wav
+*.pickle
+
+Classification/A000_SVM/runs
+Classification/A000_SVM/trained_models
+Classification/A000_SVM/Data
+
+Classification/B000_Deep/runs
+Classification/B000_Deep/trained_models
+*Test.py
+
+Classification/_dataset_/Dataset_Test
