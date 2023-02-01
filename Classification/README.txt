@@ -1,1 +1,0 @@
-Me demander pour changer des bails c'est encore un peu le bordel mais ça commence à avoir de la gueule !!!
