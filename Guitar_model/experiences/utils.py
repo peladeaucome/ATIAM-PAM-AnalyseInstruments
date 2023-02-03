@@ -52,7 +52,10 @@ def corr_dim_AS(modal_analysis, Lx_init, Ly_init, h_init, rho, E, delta_l, delta
         for j in range(len(Lys)) :
             for k in range(len(hs)) :
                 Enu_AS_0 = Enu_AS(mode_idx, Lxs[i], Lys[j], hs[k], rho ,  modal_analysis=modal_analysis, NmB_idx = NmB_idx)
-                nu_cons0 = np.sqrt(1-E/Enu_AS_0)
+                if 1-E/Enu_AS_0 < 0 :
+                    nu_cons0 = 0
+                else :
+                    nu_cons0 = np.sqrt(1-E/Enu_AS_0)
                 nus[i,j,k] = nu_cons0
     if plot :
         for k in range(len(hs)) :
@@ -86,7 +89,7 @@ def corr_dim_AS(modal_analysis, Lx_init, Ly_init, h_init, rho, E, delta_l, delta
     print(pd.DataFrame(dico_init))
     dico_corr = {
         "Lx_corr" : Lxs[ps[:,0]],
-        "Ly_corr" : Lxs[ps[:,1]],
+        "Ly_corr" : Lys[ps[:,1]],
         "h_corr" : hs[ps[:,2]],
     }
     print(pd.DataFrame(dico_corr))
