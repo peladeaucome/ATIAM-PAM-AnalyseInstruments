@@ -1,4 +1,4 @@
-T_corde = 73.9 
+T_corde = 82.3339
 S = 1e-3
 density = 1455
 L_plectre = 10e-3
