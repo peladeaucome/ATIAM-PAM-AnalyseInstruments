@@ -14,7 +14,6 @@ def parametre_corde(article = False, acier_1 = False,acier_2 = False):
         Lc = 0.65
         rho = 7800 #(kg/m3) #de internet
         rho_l = rho *  (3.1415 * r**2) 
-
         B_E = 210e9 #ici module de young # trouvé sur internet
 
     if acier_2 :

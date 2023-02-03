@@ -42,15 +42,15 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
     masseC_min = rho_l_min * Lc_min
     masseC_max = rho_l_max * Lc_max
 
-    I_min =  masseC_min * r_min ** 2 / 2
+    I_min = masseC_min * r_min **2 / 2
     I_max = masseC_max * r_max **2 / 2
 
     if article_C : ##if article B_E est le coef d'inharmonicité
         B_E_min =  B_E - B_E * v.B_delta
         B_E_max =  B_E + B_E * v.B_delta
 
-        E_corde_min = B_E_min / I_min
-        E_corde_max = B_E_max / I_max
+        E_corde_min = B_E_min / I_max
+        E_corde_max = B_E_max / I_min
 
     if acier_1C or acier_2C : ## if acier, B_E est le modul de Young direct
         E_corde_min = B_E - B_E * v.E_delta
