@@ -1,6 +1,6 @@
 
 from corde import parametre_corde
-from table import table
+from table_corrigé import table
 import Variation as v
 from pyDOE import lhs
 #import numpy as np
@@ -57,10 +57,10 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
         E_corde_max = B_E + B_E * v.E_delta
 
     ########## table : 
-    masseT, L_x ,L_y, h, E_nu, xinB = table(medium_1 = medium_1T ,medium_2 = medium_2T, metal = metal_T, plexi = plexi_T  )
+    rhoT, L_x ,L_y, h, E_nu, xinB = table(medium_1 = medium_1T ,medium_2 = medium_2T, metal = metal_T, plexi = plexi_T  )
     
-    masseT_min = masseT - masseT * v.masseT_delta
-    masseT_max = masseT + masseT * v.masseT_delta
+    rhoT_min = rhoT - rhoT * v.rhoT_delta
+    rhoT_max = rhoT + rhoT * v.rhoT_delta
 
     L_xmin = L_x - L_x * v.L_xdelta
     L_xmax = L_x + L_x * v.L_xdelta
@@ -74,9 +74,6 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
     E_nu_min = E_nu - E_nu * v.E_nu_delta
     E_nu_max = E_nu - E_nu * v.E_nu_delta
 
-    #calculé : 
-    rhoT_min = masseT_min / (L_xmax * L_ymax * h_max)  #masse volumique composite
-    rhoT_max = masseT_max / (L_ymin * h_min * L_xmin)  #masse volumique composite
 
 
     #### Création des paramètres dataset
