@@ -254,7 +254,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,article = True, model 
 
     return(W,Z)
 
-def Simu_config(xS,Fe = 44100, T = 3):
+def Simu_config(L, xS,Fe = 44100, T = 3):
     """
     entrée :
     xS : discrétisation de la corde
@@ -272,15 +272,15 @@ def Simu_config(xS,Fe = 44100, T = 3):
     # print(f"Fréquence d'échantillonage : {Fe} Hz")
     #T = 10 #Temps d'acquisition (s)
     # print(f"Temps d'acquisition : {T} s")
-    t = np.linspace(0, T, T*Fe) #Vecteur temps
+    t = np.linspace(0, T, int(T*Fe)) #Vecteur temps
     Nt = len(t)
     L = 0.65 #a changer dans la def de corde si on change
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
     idx_deb = 0
-    idx_fin = int(0.5*Fe)
-    Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 5 #Dans ce cas, Fext est une rampe
+    idx_fin = int(0.0004*Fe)
+    Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.18 #Dans ce cas, Fext est une rampe
 
     xe_idx = find_nearest_index(xS, 0.9*L)
     NxS = len(xS)
