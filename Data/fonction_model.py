@@ -143,7 +143,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     #B = 4*10**(-5) #coefficient d'inarmonicité : B = E*I (N*m**2)
 
     ## Paramètres de discrétisation
-    NmS = 80 #Modes de cordes
+    NmS = 75  #Modes de cordes
     NnS = np.arange(1,NmS+1)
 
     NxS = 1000 #Discrétisation spatiale
@@ -168,7 +168,6 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     CS = MS * 2*wnS*xinS
     KS = MS * wnS**2
     MS_inv = np.ones(NmS) * (1/MmS)
-
 
     ################# bigmatrix :
 
@@ -195,6 +194,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
         xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
         xc_idx, yc_idx = find_nearest_index(x, xc), find_nearest_index(y, yc)
         xyc = ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
+        #print(xyc)
         #pour modèle de la plaque:
         phiBS = phiB_NxNy_NmB[xyc,:]
 
@@ -207,8 +207,9 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
                         [phiSF.T, np.zeros(NmB)]
         ])
     if mode == 'A2':
+        #print(phiBS.shape)
         Aa = np.block([
-                        [phiSB.T, -phiBS],
+                        [phiSB.T, - phiBS],
                         [phiSF.T, np.zeros(NmB)]
         ])
 
@@ -335,7 +336,7 @@ def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
 
     M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
-    W,Z = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, model = False, mode = 'A1',x=x, y=y)
+    W,Z = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     _, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     return(Calcul_force(F_c,NmS,phiS_Nx_NmS))
