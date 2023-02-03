@@ -130,9 +130,10 @@ def window_and_whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int,
         xChopped[t] = x_windowed
     return xWhitened, xChopped, ARFilters
 
-def window_signal(x:npt.ArrayLike, window_length:int, hop_length:int, window_type:str = 'boxcar'):
+
+def window_signal(x:npt.ArrayLike, window_length:int, hop_length:int):
     """
-    Windows x
+    Windows the input signal x
 
     args :
         - x : array-like
@@ -150,16 +151,23 @@ def window_signal(x:npt.ArrayLike, window_length:int, hop_length:int, window_typ
     """
     
     num_windows = int(np.ceil((len(x)-window_length)/hop_length))+1
+    res = len(x) - (num_windows-1)*hop_length - window_length
+    if res==0:
+        num_windows-=1
+        res = window_length
 
     # Initializing the output arrays
     xChopped = np.zeros((num_windows, window_length), dtype = 'complex128')
 
     for t in range(num_windows):
-        xChopped[t] = x[t*hop_length:t*hop_length+window_length]
+        if t == num_windows-1:
+            xChopped[t, 0:res] = x[t*hop_length:t*hop_length+window_length]
+        else:
+            xChopped[t] = x[t*hop_length:t*hop_length+window_length]
     return xChopped
 
 
-def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
+def whiten_signal(x:npt.ArrayLike, n_fft:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
     """
     Applies a filter to the input signal so that the underlying noise has a flat spectrum.
 
@@ -186,9 +194,8 @@ def whiten_signal(x:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:int, ARF
     if window_type==None:
         window_type=='hann'
     
-    x_fft = np.fft.rfft(x*sig.get_window(window_type, len(x)))
 
-    x_psd = np.square(np.abs(x_fft))
+    _, x_psd = sig.welch(x, window = window_type, nperseg = n_fft, noverlap = 3*n_fft//4)
     noise_psd = np.zeros(np.shape(x_psd))
     for f in range(np.shape(x_psd)[0]):
         f_lowerBound = max(0, f-rankFilter_bins//2)
