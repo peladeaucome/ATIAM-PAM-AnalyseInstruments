@@ -314,8 +314,8 @@ def bandpass_filter(sig, lowcut, highcut, fs, order=5) :
     y = sosfilt(sos, sig)
     return y
 
-def time_vector(sig, fs):
+def normalise_array(sig) :
     """
-    Permet de retourner le vecteur temps associé à un signal.
+    Renvoies le tableau normalisé à 1
     """
-    return np.arange(len(sig))/fs
+    return sig/np.max(np.abs(sig))

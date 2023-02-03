@@ -1,0 +1,19 @@
+model:
+  feature_used: 
+  - "spectral_bandwidth"
+  - "spectral_centroid"
+  kernel_svm: 'rbf'
+  gamma_svm: 0.1
+  C_svm: 0.9
+  model_name: "SVM_rbf" # Mettre avec des _ partout
+  plot_title: "Test"
+
+dataset:
+  dataset_type: "list"
+  fs: 40000
+  resample: False
+  resample_rate: 32768
+  valid_ratio: 0.1
+
+train:
+  increment: 10

@@ -121,3 +121,8 @@ for it, table in enumerate(os.listdir(path_to_folder)) :
                 deforme_Nta_Npos[itable, idx_pos] = data_dict
         itable += 1
 
+idx_to_table = {}
+for i in range(deforme_Nta_Npos.shape[0]) :
+    idx_to_table[f"{i}"] = deforme_Nta_Npos[i,0]["mat_table"]
+
+print(idx_to_table)

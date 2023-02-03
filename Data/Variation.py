@@ -1,25 +1,28 @@
+## variation des paramètres en pourcentage
+
 ###variation de corde : 
 
-T_delta =  0.5
+T_delta =  0.01
 
-rho_delta = 0.5 * 10 ** (-3)
+rho_delta = 0.01
 
 Lc_delta =  0.01
 
-r_delta = 0.02 * 10e-4
+r_delta = 0.01
 
-B_delta =  0.02 * 10**(-5) 
+B_delta =  0.01
+
+E_delta = 0.01
 
 ### variation de table : 
 
-masseT_delta = 3e-3
+masseT_delta = 0.01
 
 L_xdelta = 0.01
 
-L_ydelta = 0.01 #largeur de la table (m)
+L_ydelta = 0.01 
 
-h_delta = 1e-3
+h_delta = 0.01
 
-nu_delta =  0.0003 #pif
+E_nu_delta = 0.01
 
-ET_delta = 0.0005e-9 #pif

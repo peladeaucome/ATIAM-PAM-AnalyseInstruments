@@ -39,8 +39,6 @@ def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
     
     return complexAmp
 
-
-
 def ESPRIT(x:npt.ArrayLike,num_poles:int):
     """
     Performs the ESPRIT algorithm over the input signal
@@ -60,7 +58,7 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
             eigen-values of the autocorrelation matrix
     """
     mat_size = len(x)//2
-    #mat_size = num_poles*2
+    #mat_size = num_poles*4
     N = len(x)
     l = N-mat_size+1
 
@@ -90,8 +88,9 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
     complexAmp = LeastSquare(x, damp, redFreq)
     return poles, complexAmp, Lambda
 
+
 def norm2(x):
-        return np.sum(np.square(x))
+        return np.sum(np.square(np.abs(x)))
 
 def ddiag(x):
     return np.diag(np.diag(x))
@@ -196,3 +195,344 @@ def HRHATRAC(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1,
             V = V/np.sqrt(np.sum(np.square(np.abs(V)), axis = 0))
         poles_list[window_idx] = np.diag(Lambda)
     return poles_list
+
+def HN_FAPI(xChopped:npt.ArrayLike, num_poles:int, beta:float,
+              xChoppedWhitened:npt.ArrayLike = None ,hop_length:int = 64,
+              window_type:str = 'hann'):
+    """
+    Performs an harmonic+noise decomposition by projecting onto the signal space
+    estimated using the Fast Approximated Power Iteration (FAPI) algorithm
+    
+    args :
+        - xChopped : array-like
+            input signal
+        - num_poles : int
+            dimension of the signal space onto which the signal is projected
+        - beta:float
+            Forgetting factor of the HRHATRAC algorithm
+        - xChoppedWhitened : array-like
+            preprocessed input siganl
+        - hop_length : int
+            hop length between consecutive time frames
+        - window_type : str
+            type of window to use. Uses `scipy.signal.get_window`.
+
+    returns:
+        - xHarmo : array-like
+            projection of the input signal onto the signal subspace
+        - xNoise : array-like
+            projection of the input signal onto the noise subspace
+    """
+
+    # Dimensions 
+    num_windows, window_length = np.shape(xChopped)
+    mat_size = window_length//2
+    l = window_length-mat_size+1
+    
+    # Squared Window
+    window2 = np.square(scipy.signal.get_window(window_type, window_length))
+    
+    # Initializing output arrays
+    xHarmo = np.zeros(
+        hop_length*num_windows + window_length,
+        dtype = 'complex128'
+    )
+    xNoise = np.zeros(
+        hop_length*num_windows + window_length,
+        dtype = 'complex128'
+    )
+
+    
+    # Initializing FAPI
+    W = np.matrix(np.concatenate((np.eye(num_poles, dtype = 'complex128'),
+                                  np.zeros(
+                                    (window_length - num_poles, num_poles),
+                                           dtype = 'complex128')), axis = 0),
+                  dtype = 'complex128')
+    Z = np.matrix(np.eye(num_poles, dtype = 'complex128'))
+
+    for window_idx, x in enumerate(xChopped):
+        # Input Array
+        xWhitened = np.matrix(
+            xChoppedWhitened[window_idx],
+            dtype = "complex128").T
+        
+        # FAPI algorithm
+        y = W.H@xWhitened
+        h = Z@y
+        g = h/(beta+(y.H@h))
+        eps2 = norm2(xWhitened)-norm2(y)
+        norm2g = norm2(g)
+        tau = eps2/(1+eps2*norm2g + np.sqrt(1+eps2*norm2g))
+        eta = 1-tau*norm2g
+        yprim = eta*y + tau*g
+        hprim = Z.H@yprim
+        eps_bf = (tau/eta)*(Z@g - (hprim.H@g)[0,0]*g)
+        Z = (Z - g@hprim.H + eps_bf@g.H)/beta
+        e = eta*xWhitened - W@yprim
+        W += e@g.H
+        projection_matrix_harmo = W@(W.H)
+        projection_matrix_noise = np.eye(window_length)-projection_matrix_harmo
+
+        # Overlap-Add method
+        start_idx = window_idx*hop_length
+        end_idx = window_idx*hop_length+window_length
+
+        xHarmo[start_idx:end_idx] += window2*np.array(
+            np.dot(x, projection_matrix_harmo.T))[0]
+        xNoise[start_idx:end_idx] += window2*np.array(
+            np.dot(x, projection_matrix_noise.T))[0]
+    return xHarmo, xNoise
+
+def HN_ESPRIT(xChopped:npt.ArrayLike, num_poles:int,
+              xChoppedWhitened:npt.ArrayLike = None ,hop_length:int = 64,
+              window_type:str = 'hann'):
+    """
+    Performs an harmonic+noise decomposition by projecting onto the signal
+    estimated by digonalizing the correlation matrix of the signal.
+    
+    Args :
+    ------
+    `xChopped` : array-like
+        Input signal
+    `num_poles` : int
+        Dimension of the signal space onto which the signal is projected
+    `xChoppedWhitened` : array-like
+        Preprocessed input siganl
+    `hop_length` : int
+        Hop length between consecutive time frames
+    `window_type` : str
+        Type of window to use. Uses `scipy.signal.get_window`.
+
+    Returns :
+    ---------
+    `xHarmo` : array-like
+        Projection of the input signal onto the signal subspace
+    `xNoise` : array-like
+        Projection of the input signal onto the noise subspace
+    """
+    num_windows, window_length = np.shape(xChopped)
+
+    #if xChoppedWhitened == None:
+    #    xChoppedWhitened=xChopped
+    
+    window2 = np.square(scipy.signal.get_window(window_type, window_length))
+    
+    xHarmo = np.zeros(hop_length*num_windows + window_length, dtype = 'complex128')
+    xNoise = np.zeros(hop_length*num_windows + window_length, dtype = 'complex128')
+    mat_size = window_length//2
+
+    l = window_length-mat_size+1
+    for window_idx, x in enumerate(xChopped):
+        xWhitened = xChoppedWhitened[window_idx]
+        X=scipy.linalg.hankel(xWhitened[:mat_size],xWhitened[mat_size-1:window_length])
+        # Computing the autocorrelation matrix
+        Rxx=(1/l)*(X@(np.conjugate(X.T)))
+
+        # Diagonilizing the autocorelation matrix
+        U1,Lambda,U2 = np.linalg.svd(Rxx)
+        # Creating a base of the signal space
+        W= np.matrix(U1[:,:num_poles])
+        projection_matrix_harmo = W@W.H
+        projection_matrix_noise = np.eye(mat_size)-projection_matrix_harmo
+
+        xHarmo_chopped = np.zeros(window_length, dtype = 'complex128')
+        xNoise_chopped = np.zeros(window_length, dtype = 'complex128')
+
+        xHarmo_chopped[0:mat_size] = x[:mat_size]@projection_matrix_harmo.T
+        xNoise_chopped[0:mat_size] = x[:mat_size]@projection_matrix_noise.T
+        xHarmo_chopped[mat_size:] = x[mat_size:]@projection_matrix_harmo.T
+        xNoise_chopped[mat_size:] = x[mat_size:]@projection_matrix_noise.T
+
+        xHarmo[window_idx*hop_length:window_idx*hop_length+window_length] += window2*xHarmo_chopped
+        xNoise[window_idx*hop_length:window_idx*hop_length+window_length] += window2*xNoise_chopped
+    return xHarmo, xNoise
+
+
+def HN_FAPI(xChopped:npt.ArrayLike, num_poles:int, beta:float,
+              xChoppedWhitened:npt.ArrayLike = None ,hop_length:int = 64,
+              window_type:str = 'hann'):
+    """
+    Performs an harmonic+noise decomposition by projecting onto the signal space
+    estimated using the Fast Approximated Power Iteration (FAPI) algorithm
+    
+    args :
+        - xChopped : array-like
+            input signal
+        - num_poles : int
+            dimension of the signal space onto which the signal is projected
+        - xChoppedWhitened : array-like
+            preprocessed input siganl
+        - hop_length : int
+            hop length between consecutive time frames
+        - window_type : str
+            type of window to use. Uses `scipy.signal.get_window`.
+
+    returns:
+        - xHarmo : array-like
+            projection of the input signal onto the signal subspace
+        - xNoise : array-like
+            projection of the input signal onto the noise subspace
+    """
+
+    # Dimensions 
+    num_windows, window_length = np.shape(xChopped)
+    mat_size = window_length//2
+    l = window_length-mat_size+1
+    
+    # Squared Window
+    window2 = np.square(scipy.signal.get_window(window_type, window_length))
+    
+    # Initializing output arrays
+    xHarmo = np.zeros(
+        hop_length*num_windows + window_length,
+        dtype = 'complex128'
+    )
+    xNoise = np.zeros(
+        hop_length*num_windows + window_length,
+        dtype = 'complex128'
+    )
+
+    
+    # Initializing FAPI
+    W = np.matrix(np.concatenate((np.eye(num_poles, dtype = 'complex128'),
+                                  np.zeros(
+                                    (window_length - num_poles, num_poles),
+                                           dtype = 'complex128')), axis = 0),
+                  dtype = 'complex128')
+    Z = np.matrix(np.eye(num_poles, dtype = 'complex128'))
+
+    for window_idx, x in enumerate(xChopped):
+        # Input Array
+        xWhitened = np.matrix(
+            xChoppedWhitened[window_idx],
+            dtype = "complex128").T
+        
+        # FAPI algorithm
+        y = W.H@xWhitened
+        h = Z@y
+        g = h/(beta+(y.H@h))
+        eps2 = norm2(xWhitened)-norm2(y)
+        norm2g = norm2(g)
+        tau = eps2/(1+eps2*norm2g + np.sqrt(1+eps2*norm2g))
+        eta = 1-tau*norm2g
+        yprim = eta*y + tau*g
+        hprim = Z.H@yprim
+        eps_bf = (tau/eta)*(Z@g - (hprim.H@g)[0,0]*g)
+        Z = (Z - g@hprim.H + eps_bf@g.H)/beta
+        e = eta*xWhitened - W@yprim
+        W += e@g.H
+        projection_matrix_harmo = W@(W.H)
+        projection_matrix_noise = np.eye(window_length)-projection_matrix_harmo
+
+        # Overlap-Add method
+        start_idx = window_idx*hop_length
+        end_idx = window_idx*hop_length+window_length
+
+        xHarmo[start_idx:end_idx] += window2*np.array(
+            np.dot(x, projection_matrix_harmo.T))[0]
+        xNoise[start_idx:end_idx] += window2*np.array(
+            np.dot(x, projection_matrix_noise.T))[0]
+    return xHarmo, xNoise
+
+        
+        
+def ESTER(
+    x:npt.ArrayLike,
+    start_idx:int = 0,
+    window_length:int = 512,
+    max_poles:int = 255,
+    factor:float = 10.
+    ):
+    """
+    Returns the optimal amount of signal poles to estimate with the ESPRIT
+    algorithm using the ESTimation ERror (ESTER) [1] criterion
+    
+    Args :
+    ------
+    `x` : `array-like`
+        Input signal
+    `window_length` : `int`
+        Length of the window on which the ESTER criterion is computed
+    `max_poles` : `int`
+        Max number of poles that can be estimated
+    `factor` : `float`
+        Threshold for the ESTER criterion
+    
+    Returns :
+    ---------
+
+    
+    References :
+    ------------
+
+    [1] Badeau, R., B. David, and G. Richard. “A New Perturbation Analysis for
+    Signal Enumeration in Rotational Invariance Techniques.” IEEE Transactions
+    on Signal Processing 54, no. 2 (February 2006): 450-58.
+    https://doi.org/10.1109/TSP.2005.861899.
+"""
+    
+    mat_size = window_length//2
+    l = window_length-mat_size+1
+
+    #Starting after the attack in order to have most of the modes
+    #start_idx = np.argmax(np.abs(scipy.signal.hilbert(x))) + 100
+    
+    x_windowed = x[start_idx:start_idx+window_length]
+
+    # Initialization
+    ## Signal matrix
+    X = np.matrix(scipy.linalg.hankel(
+            x_windowed[:mat_size],
+            x_windowed[mat_size-1:window_length]
+        ))
+
+    ## Computing the autocorrelation matrix
+    Rxx=(1/l)*(X@X.H)
+
+    ## Diagonilizing the autocorelation matrix
+    U1,Lambda,_ = np.linalg.svd(Rxx)
+    
+    ## Creating a base of the signal space
+    W = np.matrix(U1[:,:max_poles])
+    J_list = np.zeros(max_poles+1)
+    J_global_max = 0
+
+    phi = np.array([[0]], dtype = np.complex128)
+    Xi = np.array([[]], dtype= np.complex128)
+    for num_poles in range(0, max_poles):
+        # Update of the auxiliary matrix Psi
+        W_down = W[:-1,:num_poles]
+        W_up = W[1:,:num_poles]
+
+        w_down = W[:-1,num_poles]
+        w_up = W[1:,num_poles]
+
+        nu = W[-1,:num_poles].T
+        mu = W[-1, num_poles]
+        
+        phi_r = W_down.H@w_up
+        phi_l = W_up.H@w_down
+        phi_lr = (w_down.H@w_up)[0,0]
+
+        # Update of the auxiliary matrix Xi
+        eps = w_up - W_down@phi_r - phi_lr*w_down
+
+        Xi = np.concatenate((Xi - w_down@phi_l.H, eps), axis = 1)
+
+        # Computaion of E from Xi
+        #if num_poles == 1:
+        #    phi = phi_r.H@nu + mu*phi_lr
+        #else:
+        phi = np.concatenate((phi + mu*phi_l, phi_r.H@nu + mu*phi_lr), axis = 0)
+
+        E = Xi - ((W_down@nu)@phi.H)/(1-norm2(nu))
+
+        J = 1/norm2(E)
+        J_list[num_poles+1] = J
+
+    J_max_norm = np.amax(J_list/factor)
+    for i in range(1,len(J_list)-1):
+        if J_list[i]>J_max_norm and J_list[i]>J_list[i-1] and J_list[i]>J_list[i+1]:
+            estimated_order = i
+    return estimated_order, J_list

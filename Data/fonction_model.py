@@ -20,7 +20,38 @@ def find_nearest_index(array, value, nearest_value=False):
         return idx, array[idx]
     return idx
 
-def Bigidibig_matrice_totale(h = 2.8e-3, nu = 0.2, E_t = 7e9, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E_c = 4, I = 10**(-5), Fe = 44100):
+def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E_c = 4, I = 10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
+    """
+    input:
+    - h : hauteur de la table
+    - E_nu : rapport de E sur (1 - nu**2)
+    - rho : masse volumique de la table
+    - Lx : longueur celon x de la table
+    - Ly : longeur celon y de la table
+    - T : tension de la corde
+    - rho_l : masse linéique de la corde
+    - L : longeur de la table
+    - E_c : module de young de la corde
+    - I : moment d'inertie de la corde
+    - xinB : amortissement modaux des 9 premiers modes de la table 
+
+    En premier ce code fait l'analyse modale de la table, en la supposant simplement supporté, puis de la corde, 
+    puis mets tout ensemble pour entrer dans U-K
+
+    output : 
+     - M : matrice de toutes les masses modales (pour U-K)
+     - M_inv : matrice inverse de toutes les masses modales (pour U-K)
+     - C : matrice de tous les C modaux 
+     - K : matrice de tous les K modaux
+     - phiS_Nx_NmS : modes de la corde
+     - phiB_NxNy_NmB : modes de la table
+     - NmS : Nombre de mode de corde
+     - NmB : Nombre de mode de la table
+     - x : discrétisation en x de la table
+     - y : discrétisation en y de la table
+     - xS : discrétisation de la corde
+
+    """
     ################## plaque : 
     ## Paramètres physique
     #h = 2.8e-3 #Epaisseur de  la plaque (m)
@@ -32,8 +63,8 @@ def Bigidibig_matrice_totale(h = 2.8e-3, nu = 0.2, E_t = 7e9, rho = 400, Lx = 40
     #Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
 
     ## Paramètres de discrétisation
-    NB = 4          #Nombre de modes selon x
-    MB = 4          #Nombre de modes selon y
+    NB = 3          #Nombre de modes selon x
+    MB = 3         #Nombre de modes selon y
     NmB = NB * MB      #Nombre de modes total considérés dans le modèle de plaque
 
     dx = 10e-3 #(10mm)
@@ -48,7 +79,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, nu = 0.2, E_t = 7e9, rho = 400, Lx = 40
 
     ## Calcul des modes
     def omega_pq (p,q) :    #Calcul analytique des pulsations propres d'une plaque en appuis simple
-        return np.sqrt(E_t*h**2/(12*rho*(1-nu**2))) * ((p*np.pi/Lx)**2+(q*np.pi/Ly)**2)
+        return np.sqrt(E_nu*h**2/(12*rho)) * ((p*np.pi/Lx)**2+(q*np.pi/Ly)**2)
 
     wnB = np.zeros(NmB)
     NmB_idx = np.zeros((2,NmB))   #Cette liste permet de remonter du mode contracté "i" au mode réel (n_i,m_i) en appelant NmB_idx[:,i]
@@ -64,10 +95,9 @@ def Bigidibig_matrice_totale(h = 2.8e-3, nu = 0.2, E_t = 7e9, rho = 400, Lx = 40
     tri_idx = np.argsort(wnB)
 
     wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant
-    fnB = wnB/(2*np.pi)
+    #fnB = wnB/(2*np.pi)
     #print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
     #xinB = np.array([eta/2]*NmB) 
-    xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4,0.9,0.7,0.7,0.6,1.4,1.0,1.3])/100
 
     NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 
@@ -284,8 +314,27 @@ def Calcul_force(F_c,NmS,phiS_Nx_NmS):
     return(FS_NxS_Nt[-1,:])
 
 
-def Main(T,rho_l,L,E_corde,I,h,nu,E_table,rhoT,Lx,Ly,Fe):
-    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, nu, E_table, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, Fe)
+def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
+    """
+    input : 
+    - T : tension de la corde
+    - rho_l : masse linéique de la corde
+    - L : longueur de la corde
+    - E_corde : module de Young de la corde
+    - I : moment d'inertie de la corde
+    - h : hauteur de la table
+    - E_nu : rapport E/(1-nu**2) de la table
+    - rhoT : masse volumique de la table
+    - Lx : largueur celon x de la table
+    - Ly : largeur celon y de la table
+    - xinB : coef d'amortissement des 9 premiers modes de la table
+    - Fe : fréquence d'échantillonage
+
+    retun:
+    - La force exercé au chevalet par la corde
+    """
+
+    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
     W,Z = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, model = False, mode = 'A1',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     _, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
