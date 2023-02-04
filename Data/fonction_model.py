@@ -518,7 +518,7 @@ def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     - Fe : fréquence d'échantillonage
 
     retun:
-    - La force exercé au chevalet par la corde
+    - pos_chev_Nt : l'évolution temporelle de la position de la corde au point du chevalet
     """
 
     # M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
@@ -526,4 +526,8 @@ def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     W,Z = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     Q = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W)
-    return Q
+    pos_chev_Nt = phiS_Nx_NmS[-1,:] @ Q[:NmS]
+    # simuB_NxNy_Nt = phiB_NxNy_NmB @ Q[NmS:]
+
+
+    return pos_chev_Nt
