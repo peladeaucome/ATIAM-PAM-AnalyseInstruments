@@ -183,112 +183,6 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
 
     return(M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS)
 
-def bigdickenergy_ss(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E_c = 4, I = 10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100) :
-    ## Paramètres de discrétisation
-    NB = 3          #Nombre de modes selon x
-    MB = 3         #Nombre de modes selon y
-    NmB = NB * MB      #Nombre de modes total considérés dans le modèle de plaque
-
-    dx = 10e-3 #(10mm)
-    dy = 10e-3 #(10mm)
-    x = np.arange(0,Lx,dx)
-    y = np.arange(0,Ly,dy)
-    Nx = len(x)
-    Ny = len(y)
-
-    X_plate, Y_plate = np.meshgrid(x, y)
-    X_ravel, Y_ravel = np.ravel(X_plate), np.ravel(Y_plate)
-
-    ## Calcul des modes
-    def omega_pq (p,q) :    #Calcul analytique des pulsations propres d'une plaque en appuis simple
-        return np.sqrt(E_nu*h**2/(12*rho)) * ((p*np.pi/Lx)**2+(q*np.pi/Ly)**2)
-
-    wnB = np.zeros(NmB)
-    NmB_idx = np.zeros((2,NmB))   #Cette liste permet de remonter du mode contracté "i" au mode réel (n_i,m_i) en appelant NmB_idx[:,i]
-    j = 0
-    for n in range(1,NB+1) :
-        for m in range(1,MB+1) :
-            wnB[j] = omega_pq(n,m)
-            NmB_idx[0,j] = n
-            NmB_idx[1,j] = m
-            j += 1
-
-    ### Tri par ordre de fréquences croissantes
-    tri_idx = np.argsort(wnB)
-
-    wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant
-    #print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
-
-    NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
-
-    ### Déformées
-    def phi_pq (p,q,x,y) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
-        return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
-
-    phiB_NxNy_NmB = np.zeros((Nx*Ny,NmB)) #Matrice des déformées avec les 2 dimensions spatiales applaties en 1 dimension
-    for mode in range (NmB) :
-        for point in range(Nx*Ny) :
-            n = NmB_idx[0,mode]
-            m = NmB_idx[1,mode]
-            x_ = X_ravel[point]
-            y_ = Y_ravel[point]
-
-            phiB_NxNy_NmB[point,mode] = phi_pq(n, m , x_, y_)
-
-    ### Masses modales
-    MmB = np.zeros(NmB)
-    for j in range(NmB) :
-        PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
-        MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
-
-    ### Normalisation des masses modales
-    norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
-    phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
-
-    MB = np.ones(NmB) #modele
-    MBinv = MB
-    CB = np.ones(NmB)*2*MmB*wnB*xinB
-    KB = np.ones(NmB)*MmB*wnB**2
-    
-    ################################## cordes
-    ct = np.sqrt(T / rho_l) #célérité des ondes transverse (M/s)
-    B = E_c * I
-
-    ## Paramètres de discrétisation
-    NmS = 75  #Modes de cordes
-    NnS = np.arange(1,NmS+1)
-
-    NxS = 1000 #Discrétisation spatiale
-    xS = np.linspace(0,L,NxS) #Vecteur de la corde
-
-    ## Calcul des modes
-    phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis] / 2 / L) #Déformées d'une corde fixe aux extrémités
-    pnS = (2 * NnS - 1) * np.pi / (2 * L)
-    fnS = (ct / 2 / np.pi) * pnS * (1 + pnS**2 * B / (2 * T)) #Fréquences propres de la corde (hz)
-    #print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
-    wnS = 2*np.pi*fnS
-
-    etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
-    xinS = 1/2 * ( T*(etaf + etaA / 2 / np.pi / fnS) + etaB * B*pnS**2 ) / (T + B*pnS**2) #Amortissements modaux de la corde (ø)
-
-    MmS = rho_l * L / 2  #Masses modales de la corde (kg)
-
-    ### Matrices modales
-    MS = np.ones(NmS)*MmS
-    MSinv = np.ones(NmS)*1/MmS
-    CS = MS * np.ones(NmS)*2*wnS*xinS
-    KS = MS*np.ones(NmS)*wnS**2
-
-    ################# bigmatrix :
-
-    M_lin = np.concatenate((MS,MB))
-    M_inv_lin = np.concatenate((MSinv,MBinv))
-
-    M = np.diag(M_lin)
-    M_inv = np.diag(M_inv_lin)
-
-    return (M, M_inv, np.diag(MBinv), np.diag(MSinv), np.diag(MB),np.diag(MS), np.diag(KB),np.diag(KS), np.diag(CB),np.diag(CS), phiS_Nx_NmS, phiB_NxNy_NmB, NmS, NmB, x, y, xS)
-
 def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, model = False, mode = 'A1',x =0, y = 0):
     phiSB = phiS_Nx_NmS[-1,:] #déformée de la corde au point du chevalet
     phiSF = phiS_Nx_NmS[int(len(xS)/4),:] #déformée de la corde au point d'appuis du doigt du guitariste
@@ -320,15 +214,13 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
         ])
 
 
-    # M_inv_demi = M_inv.sqrt()
-    M_inv_demi = np.sqrt(M_inv)
+    M_inv_demi = M_inv.sqrt()
 
     B = Aa @ M_inv_demi
     Bplus = B.T @ np.linalg.inv((B @ B.T))
     W = np.eye(NmS+NmB) - M_inv_demi @ Bplus @ Aa
 
-    # Z = - M.sqrt() @ Bplus @ Aa #pour calculer la force ensuite
-    Z = - np.sqrt(M) @ Bplus @ Aa #pour calculer la force ensuite
+    Z = - M.sqrt() @ Bplus @ Aa #pour calculer la force ensuite
 
     return(W,Z)
 
@@ -417,57 +309,6 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
 
     return(Q,F_c)
 
-import control
-def launch_simu_ss(t, FextS_NxS_Nt, phiS_Nx_NmS, NmS, NmB, MBinv, MSinv, KS, KB, CS, CB, W) :
-    """
-    Ce code permet de configurer l'espace d'état du modèle et de lancer une simulation temporelle.
-
-    # Entrées
-    - Configuration de guitare préalablement établie dans "guitare_config.py"
-    - Paramètres issue de la formulation d'Udwadia-Kalaba établis dans "UK_parameters.py"
-    - Paramètres de simulation : force extérieure "FextS_NxS_Nt", vecteur temps de simulation "t"
-
-    # Sortie
-    - Vecteur Q de dimension (NmS+NmB, Nt) : représente l'évolution des participations modales au cours du temps de la position de la corde sur les NmS premières coordonnées, et de la table sur les NmB dernières coordonnées.
-    """
-
-    ABG = W @ np.block([
-        [-MSinv @ KS, np.zeros((NmS,NmB))],
-        [np.zeros((NmB, NmS)), -MBinv @ KB]
-    ])
-    ABD = W @ np.block([
-        [-MSinv @ CS, np.zeros((NmS,NmB))],
-        [np.zeros((NmB, NmS)), -MBinv @ CB]
-    ])
-
-    A = np.block([
-        [np.zeros((NmS+NmB,NmS+NmB)) , np.eye(NmS+NmB)],
-        [ ABG         , ABD      ]
-    ])
-
-    B = np.block([
-        [np.zeros((NmS+NmB, NmS))],
-        [W @ np.block([
-            [MSinv],
-            [np.zeros((NmB, NmS))]
-            ])]
-    ])
-
-    #Pour observer la position
-    C = np.block([
-        [np.eye(NmS+NmB) ,  np.zeros((NmS+NmB,NmS+NmB))]
-    ])
-
-    D = 0
-
-    sys = control.StateSpace(A,B,C,D)
-
-    U = phiS_Nx_NmS.T @ FextS_NxS_Nt
-
-    t, Q = control.forced_response(sys, T=t, U=U, X0=0)
-
-    return Q
-
 def Calcul_force(F_c,NmS,phiS_Nx_NmS):
     FS = F_c[:NmS,:]
     FS_NxS_Nt = phiS_Nx_NmS @ FS
@@ -499,35 +340,3 @@ def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     _, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     return(Calcul_force(F_c,NmS,phiS_Nx_NmS))
-
-
-def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
-    """
-    input : 
-    - T : tension de la corde
-    - rho_l : masse linéique de la corde
-    - L : longueur de la corde
-    - E_corde : module de Young de la corde
-    - I : moment d'inertie de la corde
-    - h : hauteur de la table
-    - E_nu : rapport E/(1-nu**2) de la table
-    - rhoT : masse volumique de la table
-    - Lx : largueur celon x de la table
-    - Ly : largeur celon y de la table
-    - xinB : coef d'amortissement des 9 premiers modes de la table
-    - Fe : fréquence d'échantillonage
-
-    retun:
-    - pos_chev_Nt : l'évolution temporelle de la position de la corde au point du chevalet
-    """
-
-    # M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
-    (M, M_inv, MB_inv, MS_inv, MB,MS, KB,KS, CB,CS, phiS_Nx_NmS, phiB_NxNy_NmB, NmS, NmB, x, y, xS) = bigdickenergy_ss(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB)
-    W,Z = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
-    t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
-    Q = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W)
-    pos_chev_Nt = phiS_Nx_NmS[-1,:] @ Q[:NmS]
-    # simuB_NxNy_Nt = phiB_NxNy_NmB @ Q[NmS:]
-
-
-    return pos_chev_Nt
