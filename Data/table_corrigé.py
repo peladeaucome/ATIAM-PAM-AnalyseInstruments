@@ -23,7 +23,7 @@ def table(medium_1=False,medium_2=False,metal=False,plexi = False):
         L_x = 0.4786734693877551 #longueur de la table (m)
         L_y = 0.3305102040816326 #largeur de la table (m)
         h = 0.3305102040816326 #épaisseur de la table (m)       
-        E_nu = 83238129955.9411 / 5
+        E_nu = 83238129955.9411 
         xinB = [0.063436, 0.060403, 0.041436, 0.041484, 0.021603, 0.034045, 0.047832, 0.039952, 0.040259]
 
     if plexi :
