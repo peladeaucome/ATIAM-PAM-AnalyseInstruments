@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.sparse import dia_matrix, diags
 from scipy.sparse.linalg import inv
+import matplotlib.pyplot as plt
 
 
 def ravel_index_from_true_indexes(x_idx, y_idx, Nx) :
@@ -121,14 +122,12 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
         PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
         MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
 
-    #MmB /= 100
-
     ### Normalisation des masses modales
     norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
     MB = np.ones(NmB)
-    MB_inv = MB
+    MB_inv = MB #Il y a une erreur la non ?
     CB = 2 * MmB * wnB * xinB
     KB = MmB * wnB ** 2
     
@@ -180,6 +179,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     M_inv = diags(M_inv_lin)
     K = diags(K_lin)
     C = diags(C_lin)
+
 
     return(M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS)
 
@@ -340,4 +340,3 @@ def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     _, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     return(Calcul_force(F_c,NmS,phiS_Nx_NmS))
-
