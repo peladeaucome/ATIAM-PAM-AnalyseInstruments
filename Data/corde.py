@@ -1,6 +1,6 @@
 ###c'est chaud entre ce qu'on a mesuré,  les bails de l'article et le reste
 def parametre_corde(article = False, acier_1 = False,acier_2 = False):
-    if article:
+    if article :
         T = 73.9 
         rho_l = (3.61) * 10**(-3)
         Lc = 0.65
