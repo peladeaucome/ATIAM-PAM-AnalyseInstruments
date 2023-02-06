@@ -1,5 +1,6 @@
 Guitar_model/Armand_modphy/*
 Data/1ier_data_set/*
+*.zip
 *.pyc
 *.wav
 *.pickle

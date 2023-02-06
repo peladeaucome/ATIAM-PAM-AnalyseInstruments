@@ -3,7 +3,7 @@ from corde import parametre_corde
 from table_corrigé import table
 import Variation as v
 from pyDOE import lhs
-#import numpy as np
+import numpy as np
 
 def latin_hypercube_sample(n, dim, bounds):
     """
@@ -25,7 +25,6 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
 
     ######################corde : 
     T, rho_l, Lc, r, B_E = parametre_corde(article = article_C, acier_1 = acier_1C, acier_2 = acier_2C)
-
     T_min = T - T * v.T_delta
     T_max = T + T * v.T_delta
 
@@ -42,8 +41,11 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
     masseC_min = rho_l_min * Lc_min
     masseC_max = rho_l_max * Lc_max
 
-    I_min = masseC_min * r_min **2 / 2
-    I_max = masseC_max * r_max **2 / 2
+    # I_min = masseC_min * r_min **2 / 2
+    #I_max = masseC_max * r_max **2 / 2
+
+    I_min = np.pi * r_min ** 4 / 2
+    I_max = np.pi * r_max ** 4 / 2
 
     if article_C : ##if article B_E est le coef d'inharmonicité
         B_E_min =  B_E - B_E * v.B_delta
@@ -51,6 +53,7 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
 
         E_corde_min = B_E_min / I_max
         E_corde_max = B_E_max / I_min
+        print(E_corde_min,E_corde_max)
 
     if acier_1C or acier_2C : ## if acier, B_E est le modul de Young direct
         E_corde_min = B_E - B_E * v.E_delta
