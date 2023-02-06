@@ -33,10 +33,11 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     """
     Computes the auto-regressive filter coefficients to match a given noise power spectral density,
     based on the assumption that the noise is obtained by filtering white noise with an AR filter.
-    args :
-        - noise_psd : array-like
-            power spectral density of the noise.
-        - ARFilter_length : int
+    Parameters :
+    ------------
+    `noise_psd` : array-like
+        power spectral density of the noise.
+    `ARFilter_length` : int
         number of coefficients of the AR filter.
     
     returns :
@@ -51,103 +52,27 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
     r = noise_autocorr_vec[1: ARFilter_length+1]
     # Solving the Yule-Walker equations to get the AR filter coefficients
     ARFilter_a = np.concatenate((np.ones(1), -scipy.linalg.solve_toeplitz(noise_autocorr_vec[:ARFilter_length], r)))
-    #ARFilter_a = np.concatenate((np.ones(1), -np.dot(scipy.linalg.inv(R), r)))
     return ARFilter_a
-
-def window_and_whiten_signal(x:npt.ArrayLike, window_length:int, hop_length:int, rankFilter_bins:int, rankFilter_rank:int, ARFilter_length:int, threshold:float = 1e-6, window_type:str = 'hann'):
-    """
-    Whitens each window of x
-
-    args :
-        - x : array-like
-            input signal
-        - window_length : int
-            length of the windows
-        - hop_length : int
-            number of samples gap between adjacent windows
-        - rankFilter_bins : int
-            size of the rank filter
-        - rankFilter_rank : float or int
-            rank of the rank filter, which must be between 0 and 1
-        - ARFilter_length : int
-            size of he auto-regressive filter
-        - threshold : float
-            RMS threshold below which the signal is left unfiltered to avoid computation problems
-        - window_type : str
-            window type. Default : hann
-    
-    returns :
-        - xWhitened : array-like, same size as x
-            x which has been 'whitened' on each window
-        - xChopped : array-like
-            each time frame of the original signal
-        - ARFilters : array-like
-            coefficients of the AR-filters for each time frame
-    """
-    x_stft = librosa.stft(
-        np.real(x),
-        n_fft = window_length,
-        hop_length=hop_length,
-        center=False,
-        window=window_type
-    )
-
-    #_, _, x_stft = sig.stft(
-    #    x,
-    #    fs=1,
-    #    window = window_type,
-    #    nperseg = window_length,
-    #    noverlap = window_length-hop_length,
-    #    nfft = window_length,
-    #    detrend = False,
-    #    return_onesided = True,
-    #    scaling = 'spectrum'
-    #)
-    #print(x_stft.shape)
-    #x_stft = x_stft.T
-    #print(x_stft.shape)
-    
-    noise_psd = rankFilter_stft(
-        x_stft = x_stft,
-        rankFilter_bins = rankFilter_bins,
-        rankFilter_rank = rankFilter_rank
-    )
-    
-    # Initializing the output arrays
-    xWhitened = np.zeros((np.shape(x_stft)[1], window_length), dtype = 'complex128')
-    xChopped = np.zeros((np.shape(x_stft)[1], window_length), dtype = 'complex128')
-    ARFilters = np.zeros((np.shape(x_stft)[1], ARFilter_length+1))
-
-    for t in range(np.shape(x_stft)[1]):
-        x_windowed = x[t*hop_length:t*hop_length+window_length]
-        if np.std(x_windowed)>threshold:
-            ARFilter_a = compute_ARFilter(noise_psd[:,t], ARFilter_length)
-            ARFilters[t] = ARFilter_a
-            #Filtering x
-            xWhitened[t] = sig.lfilter(ARFilter_a, [1], x_windowed)
-        else:
-            xWhitened[t] = x_windowed
-        xChopped[t] = x_windowed
-    return xWhitened, xChopped, ARFilters
 
 
 def window_signal(x:npt.ArrayLike, window_length:int, hop_length:int):
     """
     Windows the input signal x
 
-    args :
-        - x : array-like
-            input signal
-        - window_length : int
-            length of the windows
-        - hop_length : int
-            number of samples gap between adjacent windows
-        - window_type : str
-            window type. Default : hann
+    Parameters :
+    ------------
+    `x` : array-like
+        input signal
+    `window_length` : int
+        length of the windows
+    `hop_length` : int
+        number of samples gap between adjacent windows
+    `window_type` : str
+        window type. Default : hann
     
     returns :
-        - xChopped : array-like
-            each time frame of the original signal
+    `xChopped` : array-like
+        each time frame of the original signal
     """
     
     num_windows = int(np.ceil((len(x)-window_length)/hop_length))+1
@@ -218,14 +143,18 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, rankFilter_bins:int, rankFilter_ra
 def compute_stft_from_windowed(xWhitened:npt.ArrayLike ,window_type:str ='hann'):
     """
     Computes the STFT from the whitened signal array
-    args :
-        - xWhitened : array-like
-            Whitened signal array
-        - window_type : str
-            window type. Default : hann
-    returns
-        - xWhitened_stft : array-like
-            STFT of the whitened signal
+
+    Parameters :
+    ------------
+    `xWhitened` : array-like
+        Whitened signal array
+    `window_type` : str
+        window type. Default : hann
+    
+    Returns :
+    ---------
+    `xWhitened_stft` : array-like
+        STFT of the whitened signal
     """
     if window_type==None:
         window_type=='hann'
@@ -234,3 +163,57 @@ def compute_stft_from_windowed(xWhitened:npt.ArrayLike ,window_type:str ='hann')
     for t in range(np.shape(xWhitened_stft)[1]):
         xWhitened_stft[:,t] = np.fft.rfft(xWhitened[t]*window)
     return xWhitened_stft
+
+
+def nearPR_CMFB(num_bands:int, num_taps:int = None, tol_transitionBand:float = None):
+    """
+    Returns near perfect reconstruction cosine-modulated filter bank
+    impulse responses
+
+    Parameters :
+    ------------
+    `num_bands` : int
+        Number of bands in which the signal needs to be splitted
+    `num_taps` : int
+        Length of the filters, in samples
+    `tol_transitionBand` : float
+        Tolerance of the transition band of the filters
+
+    Returns :
+    ---------
+    `filters` : array-like (num_bands, 10*num_bands-1)
+        Impulse responses of the filters
+    """
+    # Number of filter taps
+    if num_taps == None:
+        num_taps = 16*num_bands-1
+    # Width of the transition band
+    if tol_transitionBand == None:
+        tol_transitionBand = 1/(16*num_bands)
+
+    # Design of the protoype filter
+    prototype_filter_IR = sig.remez(
+        numtaps = num_taps,
+        bands = [
+            0,
+            1/(4*(num_bands-1)) - tol_transitionBand,
+            1/(4*(num_bands-1)) + tol_transitionBand,
+            1/2],
+        fs = 1,
+        type = 'bandpass',
+        desired = [1, 0],
+        weight= [1,1]
+    )
+
+    # Modulating the protoype filter to get the filter bank
+    Analysis_filters = np.zeros((num_bands, num_taps))
+    Synthesis_filters = np.zeros((num_bands, num_taps))
+    for band_idx in range(num_bands):
+        theta = np.power(-1, band_idx)*np.pi/4
+        Analysis_filters[band_idx] = prototype_filter_IR*np.cos(
+            np.pi*(np.arange(num_taps) - (num_taps)/2)*(band_idx+.5)/num_bands + theta
+            ) *2
+        Synthesis_filters[band_idx] = prototype_filter_IR*np.cos(
+            np.pi*(np.arange(num_taps) - num_taps/2)*(band_idx+.5)/num_bands - theta
+            ) *2
+    return Analysis_filters, Synthesis_filters
