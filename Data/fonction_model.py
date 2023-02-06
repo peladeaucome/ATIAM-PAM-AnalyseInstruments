@@ -185,7 +185,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
 
 def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, model = False, mode = 'A1',x =0, y = 0):
     phiSB = phiS_Nx_NmS[-1,:] #déformée de la corde au point du chevalet
-    phiSF = phiS_Nx_NmS[int(len(xS)/4),:] #déformée de la corde au point d'appuis du doigt du guitariste
+    phiSF = phiS_Nx_NmS[1,:] #déformée de la corde au point d'appuis du doigt du guitariste
 
     if model : 
         Nx = len(x)
