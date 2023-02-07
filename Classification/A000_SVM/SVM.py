@@ -8,6 +8,7 @@ import os
 
 def train_SVM(features,
               labels,
+              classes_names,
               feature_use = ['spectral_centroid','spectral_bandwidth'],
               valid_ratio = 0.25,
               kernel_svm = 'rbf',
@@ -55,13 +56,20 @@ def train_SVM(features,
 
     # Tracer les données de classification et les frontières de décision
     fig = plt.figure()
-    plot_decision_regions(X, y, clf=clf, legend=2)
+    ax = plot_decision_regions(X, 
+                               y, 
+                               clf=clf, 
+                               legend=2,
+                               colors='red,blue,limegreen,gray,cyan')
 
     # Ajouter les labels d'axes et le titre
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, classes_names,
+          framealpha=0.9, scatterpoints=1)
     plt.xlabel(feature_use[0])
     plt.ylabel(feature_use[1])
     plt.title(plot_title)
-
+    plt.show()
     writer.add_figure("Classification", fig)
     writer.flush()
     

@@ -67,6 +67,7 @@ class train(nn.Module):
         theta_pred = self.model(x)
         loss = nn.MSELoss(reduction="none")
         full_loss = loss(theta_pred,theta).sum(dim=1).mean()
+        full_loss = torch.tensor(full_loss, dtype=torch.float32,requires_grad=True)
         return full_loss
 
 

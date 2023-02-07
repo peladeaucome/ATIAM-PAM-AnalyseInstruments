@@ -1,5 +1,8 @@
 import numpy as np
 import librosa
+import Classification._dataset_.Normalize as n
+
+
 
 def spectral_slope(data, sr, n_fft=2048, hop_length=None, win_length=None, 
                    window='hann', center=True, pad_mode='constant'):
@@ -16,7 +19,8 @@ def spectral_slope(data, sr, n_fft=2048, hop_length=None, win_length=None,
 
 def compute_features(data, sr, S=None, n_fft=2048, frame_length=2048, hop_length=512, win_length=None, window='hann',
                      center=True, pad_mode='constant', freq=None, fmin=200.0, n_bands=6, quantile=0.02, linear=False, centroid=None, norm=True,
-                     p=2, amin=1e-10, power=2.0,roll_percent=0.85,use="SVM"):
+                     p=2, amin=1e-10, power=2.0,roll_percent=0.85,use="SVM",start=0,stop=-1,normalisation=True):
+    
     features = []
     # Without contrast and spectral slope in a first place
     name = ['spectral_centroid', 'spectral_bandwidth', 'spectral_flatness', 'spectral_rolloff','zero_crossing_rate', 'rms']
@@ -38,25 +42,42 @@ def compute_features(data, sr, S=None, n_fft=2048, frame_length=2048, hop_length
     
     """ slope = spectral_slope(data, sr, n_fft=n_fft, hop_length=hop_length, win_length=win_length, 
                    window=window, center=center, pad_mode=pad_mode) """
+    
     if use == "SVM":
-        features.append(cent.mean(axis=-1))
-        features.append(spec_bw.mean(axis=-1))
-        #features.append(contrast.mean(axis=-1))
-        features.append(flatness.mean(axis=-1))
-        features.append(rolloff.mean(axis=-1))
-        features.append(zcr.mean(axis=-1))
-        features.append(rms.mean(axis=-1))
-        #features.append(slope.mean(axis=-1))
-        #return features,name
-    if use == "SVM":
+        if normalisation==True:
+            #print(np.shape(cent[:,0,start:stop].mean(axis=-1).reshape(1,-1)))
+            dict_features = {}
+            dict_features['spectral_centroid'] = n.normalize(cent[:,0,start:stop].mean(axis=-1).reshape(1,-1))[0]
+            dict_features['spectral_bandwidth'] = n.normalize(spec_bw[:,0,start:stop].mean(axis=-1).reshape(1,-1))[0]
+            #dict_features['spectral_contrast'] = contrast.mean(axis=-1)
+            dict_features['spectral_flatness'] = n.normalize(flatness[:,0,start:stop].mean(axis=-1).reshape(1,-1))[0]
+            dict_features['spectral_rolloff'] = n.normalize(rolloff[:,0,start:stop].mean(axis=-1).reshape(1,-1))[0]
+            dict_features['zero_crossing_rate'] = n.normalize(zcr[:,0,start:stop].mean(axis=-1).reshape(1,-1))[0]
+            dict_features['rms'] = n.normalize(rms[:,0,start:stop].mean(axis=-1).reshape(1,-1))[0]
+            #dict_features['spectral_slope'] = slope
+            
+            return dict_features
+        else :
+            dict_features = {}
+            dict_features['spectral_centroid'] = cent[:,0,start:stop].mean(axis=-1)
+            dict_features['spectral_bandwidth'] = spec_bw[:,0,start:stop].mean(axis=-1)
+            #dict_features['spectral_contrast'] = contrast.mean(axis=-1)
+            dict_features['spectral_flatness'] = flatness[:,0,start:stop].mean(axis=-1)
+            dict_features['spectral_rolloff'] = rolloff[:,0,start:stop].mean(axis=-1)
+            dict_features['zero_crossing_rate'] = zcr[:,0,start:stop].mean(axis=-1)
+            dict_features['rms'] = rms[:,0,start:stop].mean(axis=-1)
+            #dict_features['spectral_slope'] = slope
+
+            return dict_features
+    else:
         dict_features = {}
-        dict_features['spectral_centroid'] = cent.mean(axis=-1)
-        dict_features['spectral_bandwidth'] = spec_bw.mean(axis=-1)
+        dict_features['spectral_centroid'] = cent[:,0,start:stop]
+        dict_features['spectral_bandwidth'] = spec_bw[:,0,start:stop]
         #dict_features['spectral_contrast'] = contrast.mean(axis=-1)
-        dict_features['spectral_flatness'] = flatness.mean(axis=-1)
-        dict_features['spectral_rolloff'] = rolloff.mean(axis=-1)
-        dict_features['zero_crossing_rate'] = zcr.mean(axis=-1)
-        dict_features['rms'] = rms.mean(axis=-1)
+        dict_features['spectral_flatness'] = flatness[:,0,start:stop]
+        dict_features['spectral_rolloff'] = rolloff[:,0,start:stop]
+        dict_features['zero_crossing_rate'] = zcr[:,0,start:stop]
+        dict_features['rms'] = rms[:,0,start:stop]
         #dict_features['spectral_slope'] = slope
         
         return dict_features

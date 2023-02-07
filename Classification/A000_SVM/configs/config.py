@@ -5,9 +5,10 @@ import os
 
 class SVM(BaseModel):
     feature_used: list
+    n_features: int = 2
     kernel_svm: str = 'rbf'
-    gamma_svm: float
-    C_svm: float
+    C_svm: list
+    step: int = 10
     model_name: str
     plot_title: str
 

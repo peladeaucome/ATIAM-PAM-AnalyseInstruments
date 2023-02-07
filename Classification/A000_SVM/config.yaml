@@ -2,11 +2,18 @@ model:
   feature_used: 
   - "spectral_bandwidth"
   - "spectral_centroid"
-  kernel_svm: 'rbf'
-  gamma_svm: 0.1
-  C_svm: 0.9
-  model_name: "SVM_rbf" # Mettre avec des _ partout
-  plot_title: "Test"
+  - "spectral_rolloff"
+  - "rms"
+  - "spectral_flatness"
+  - "zero_crossing_rate"
+  n_features: 2 # or 2
+  kernel_svm: 'rbf' #rbf,linear,poly
+  C_svm: 
+  - 0.1
+  - 20
+  step: 100
+  model_name: "Normalisation_Paires_2" # Mettre avec des _ partout
+  plot_title: "Classification de 4 plaques"
 
 dataset:
   dataset_type: "list"

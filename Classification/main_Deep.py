@@ -6,11 +6,11 @@ import B000_Deep.configs.config as config
 import _dataset_.Dataset as dataset
 import B000_Deep.models.CNN_MLP 
 import B000_Deep.train.Train
-
+import time
 
 ############################################################# A MODIF #########################
-path_main = "./Apprentissage/B000_Deep"
-path_dataset = "./Apprentissage/_dataset_/Dataset_Test/"
+path_main = "./Classification/B000_Deep"
+path_dataset = "./Classification/_dataset_/Dataset/Dataset_1/"
 ############################################################# A MODIF #########################
 
 
@@ -20,6 +20,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Permet de load toute la configuration
 main_config = config.load_config("{}/config.yaml".format(path_main))
 
+start = time.time()
 # Import du dataset
 list_dataset,label_num = dataset.load_data(path=path_dataset,
                                            dataset_type=main_config.dataset.dataset_type,
@@ -32,7 +33,8 @@ train_loader,valid_loader = dataset.Create_Dataset(dataset= list_dataset,
                                                    valid_ratio = main_config.dataset.valid_ratio,
                                                    num_threads = main_config.dataset.num_thread,
                                                    batch_size = main_config.dataset.batch_size)
-
+stop = time.time()
+print("\n                       Dataset loaded in {} seconds \n".format(stop-start))
 
 # Creation session tensorboard et save de la config
 checkpoint = "{}".format(main_config.model.model_name)
@@ -76,8 +78,8 @@ model_train = B000_Deep.train.Train.train(model = model,
                               path_main = path_main,
                               device = device)
 
-#%%
-#model_train.train_step()
+
+model_train.train_step()
 
 
 
