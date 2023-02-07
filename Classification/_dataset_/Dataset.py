@@ -6,7 +6,8 @@ import os
 import librosa
 import _dataset_.Compute_Features as cf
 
-def load_data(path,dataset_type = "list",
+def load_data(path,
+              dataset_type = "list",
               fs=40000,
               resample = False,
               resample_rate=32768,

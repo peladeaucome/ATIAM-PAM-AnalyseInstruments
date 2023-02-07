@@ -1,5 +1,5 @@
 model:
-  output_dim: 11 # Numbers of parameters Theta
+  output_dim: 10 # Numbers of parameters Theta
   ratios_CNN: 
   - 4 
   - 4 

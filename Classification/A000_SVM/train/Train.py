@@ -1,182 +1,288 @@
-from torch import nn
-import torch
-import os
+from sklearn import svm
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from mlxtend.plotting import plot_decision_regions
 import numpy as np
-import librosa 
-import librosa.display
+import os
+import pickle
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn import preprocessing
+from sklearn.preprocessing import MinMaxScaler
 
-class train(nn.Module):
+class train():
     def __init__(self, 
-                 model, 
-                 train_loader, 
-                 valid_loader,
-                 num_epochs,
-                 lr,
-                 loss,
-                 writer, 
-                 save_ckpt,
-                 add_fig,
-                 model_name, 
-                 path_main,
-                 device,
+                 features,
+                 labels,
+                 classes_names,
+                 feature_use = ['spectral_centroid','spectral_bandwidth'],
+                 valid_ratio = 0.25,
+                 kernel_svm = 'rbf',
+                 C_svm = 1,
+                 path_main = "./Apprentissage/A000_SVM/",
+                 plot_title = "SVM pour la classification des tables",
+                 model_name = "SVM",
+                 writer = None,
+                 step = 10,
+                 n_features = 2
                  ):
         super(train, self).__init__()
-
-        self.train_loader = train_loader
-        self.valid_loader = valid_loader
-        self.model = model
-        self.lr = lr
+        # input parameters
+        self.features = features
+        self.n_features = n_features
+        self.labels = labels
+        self.classes_names = classes_names
+        self.feature_use = feature_use
+        self.model_name = model_name
         self.path_main = path_main
-        self.trained_model_path = "{}/runs/{}/{}.pt".format(self.path_main, model_name,model_name)
-        self.best_trained_model_path = "{}/runs/{}/{}_best.pt".format(self.path_main, model_name,model_name)
+        self.best_trained_model_path = "{}/runs/{}/{}_best.pickle".format(self.path_main, self.model_name,self.model_name)
+        self.best_model_path = "{}/runs/{}/{}_".format(self.path_main, self.model_name,self.model_name)
+        # Save parameters
         self.writer = writer
-        self.num_epochs = num_epochs
-        self.add_fig = add_fig
-        self.save_ckpt = save_ckpt
-        self.device = device
-        self.loss = loss
+        self.plot_title = plot_title
 
-
-    def load_checkpoint(self):
-        optimizer = self.configure_optimizer()
-        if os.path.isfile(self.trained_model_path):
-            ckpt = torch.load(self.trained_model_path)
-
-            self.model.load_state_dict(ckpt["model"])
-            optimizer.load_state_dict(ckpt["optimizer"])
-            start_epoch = ckpt["epoch"]
-            print("model parameters loaded from " + self.trained_model_path)
-        else:
-            start_epoch = 0
-            print("new model")
-            
-        return optimizer, start_epoch
-
-
-    def configure_optimizer(self):
-        optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.lr
-        )
- 
-        return optimizer
-
-    def compute_loss(self,
-                     x,
-                     theta): 
-        theta_pred = self.model(x)
-        loss = nn.MSELoss(reduction="none")
-        full_loss = loss(theta_pred,theta).sum(dim=1).mean()
-        return full_loss
+        self.valid_ratio = valid_ratio
+        # SVM parameters
+        self.kernel_svm = kernel_svm
+        self.C_svm = C_svm
+        self.step = step
 
 
     def train_step(self):
-        optimizer, start_epoch = self.load_checkpoint()
-        print("Optimizer, ok")
-
-        for epoch in range(start_epoch, start_epoch + self.num_epochs):
+        if self.n_features == 2:
+            # Compute de X and y
+            v = 0
+            Tot=[]
             
-            ################## Training loop ####################
-            loss = torch.Tensor([0]).to(self.device)
+            y = self.labels
+            for k,feature in enumerate(self.feature_use):
+                if feature not in ['rms','spectral_centroid','spectral_bandwidth','spectral_rolloff','spectral_flatness','zero_crossing_rate']:
+                    print("Feature {} not in the list of available features".format(feature))
+                    return
+                X_temp = []
+                X_temp.append(self.features[feature])
+                for h,feature2 in enumerate(self.feature_use):
+                    
+                    if h>k or len(X_temp)<self.n_features :
+                        if h<=k:
+                            continue
+                        else:
+                            v+=1
+                            X_temp.append(self.features[feature2])
+                            X = np.array(X_temp).T
+                            Tot.append((feature,feature2))
+                            
 
-            for n, batch in enumerate(self.train_loader):
-                theta = batch[1].to(self.device)
-                inputs = batch[0][:,None,:].to(self.device)
-                # Compute the loss.
-                loss_add = self.compute_loss(inputs,theta)
-
-                # Before the backward pass, zero all of the network gradients
-                optimizer.zero_grad()
-
-                # Backward pass: compute gradient of the loss with respect to parameters
-                loss_add.backward()
-
-                # Calling the step function to update the parameters
-                optimizer.step()
-
-                # Somme des loss sur tous les batches
-                loss += loss_add
-
-            # Normalisation par le nombre de batch
-            loss = loss/len(self.train_loader)
-
-            # Add loss in tensorboard 
-            print("Epoch : {}, Loss : {}".format(epoch+1, loss))
-            self.writer.add_scalar("Loss/Loss", loss, epoch)
-            self.writer.flush()
-
-            # Save checkpoint
-            if epoch%self.save_ckpt == 0:
-                checkpoint = {
-                    "epoch": epoch + 1,
-                    "VAE_model" : self.model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                }
-                torch.save(checkpoint, self.trained_model_path)
-
-""" 
-            ##################### Valid ################################
-            counter = torch.Tensor([0]).to(self.device)
-            valid_loss = torch.Tensor([0]).to(self.device)
+                            # Diviser les données en données d'entraînement et de test
+                            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = self.valid_ratio, random_state=42)
             
-            for n, x in enumerate(self.valid_loader):
-                x = x.to(self.device)
-                with torch.no_grad():
-                    _,_, valid_loss_add = self.compute_loss(x)
-                valid_loss += valid_loss_add
-            valid_loss = valid_loss/len(self.valid_loader)
-            self.writer.add_scalar("Loss/Valid_Loss", valid_loss, epoch)
+                            for i,c in enumerate(np.linspace(self.C_svm[0],self.C_svm[-1],self.step)):
+                                #print("Iteration : ",i)
+                            
+                                # Entraîner le modèle SVM
+                                
+                                clf = svm.SVC(gamma = 'scale', # gamma = gamma,
+                                                C = c, 
+                                                kernel = self.kernel_svm)
+                                gamma =  1 / ((k+1) * X_train.var())
+                                clf.fit(X_train, y_train)
+                                
+                                # Évaluer le modèle
+                                accuracy = clf.score(X_test, y_test)
+                                
 
-            # Stopping criterion
-            if epoch==start_epoch:
-                old_valid = valid_loss
-                min_valid = valid_loss
-            if valid_loss < min_valid:
-                min_valid = valid_loss
-                counter = 0
-                # Save best checkpoint
-                checkpoint = {
-                    "epoch": epoch + 1,
-                    "VAE_model" : self.model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                }
-                torch.save(checkpoint, self.best_trained_model_path)
+                                # Save the best model
+                                if i == 0 :
+                                    best_accuracy = accuracy
+                                    best_accuracy_c = c
+                                    best_accuracy_gamma = gamma
+                                    best_accuracy_model = clf
+                                    
+                                    
+                                else:
+                                    if accuracy > best_accuracy:
+                                        best_accuracy = accuracy
+                                        best_accuracy_c = c
+                                        best_accuracy_gamma = gamma
+                                        best_accuracy_model = clf           
+                            pickle.dump(best_accuracy_model, open("{}{}_{}_best_model.pickle".format(self.best_model_path,feature,feature2), "wb"))
+                            
+                            ####### Visualisation des résultats #######
+                            
+                            self.writer.add_scalar("Accuracy", accuracy,v)
+                            self.writer.add_text('Liste des configs', str(Tot))
+                            self.writer.flush()
+                            # Tracer les données de classification et les frontières de décision
+                            fig = plt.figure()
+                            ax = plot_decision_regions(X, 
+                                                    y, 
+                                                    clf=best_accuracy_model, 
+                                                    legend=2,
+                                                    zoom_factor=2)
+                            handles, labels = ax.get_legend_handles_labels()
+                            ax.legend(handles, self.classes_names,framealpha=0.9, scatterpoints=1)
+                            plt.title(self.plot_title+"\nc = {}, gamma = {} with \n{} and {}".format(best_accuracy_c,best_accuracy_gamma,feature,feature2))
+                            plt.xlabel(feature)
+                            plt.ylabel(feature2)
+                            #plt.show()
+                            self.writer.add_figure("Visualisation", fig,v)
+                            self.writer.flush()
+                            # Plot the best model for acombinaison of features        
+                            disp = ConfusionMatrixDisplay.from_estimator(
+                                best_accuracy_model,
+                                X_test,
+                                y_test,
+                                display_labels=self.classes_names,
+                                cmap=plt.cm.Blues,
+                                normalize=None,
+                            )
+                            disp.ax_.set_title("Confusion Matrix  for features : \n{} and {}".format(feature,feature2))
+                            
+                            self.writer.add_figure("Confusion Matrix", disp.figure_,v)
+                            self.writer.flush()
 
-            if old_valid < valid_loss:
-                counter += 1
+                            print("Best accuracy : {} with C = {} and gamma = {} for the following features : {} and {}".format(best_accuracy,best_accuracy_c,best_accuracy_gamma,feature,feature2))
+                            
+                            
+                            ###### Save best global model ######
+                            if v == 1 :
+                                global_best_accuracy = best_accuracy
+                                global_best_accuracy_c = best_accuracy_c
+                                global_best_accuracy_gamma = best_accuracy_gamma
+                                global_best_accuracy_model = best_accuracy_model
+                                global_best_accuracy_features = (feature,feature2)
+                                
+                                
+                            else:
+                                if accuracy > best_accuracy:
+                                    global_best_accuracy = best_accuracy
+                                    global_best_accuracy_c = best_accuracy_c
+                                    global_best_accuracy_gamma = best_accuracy_gamma
+                                    global_best_accuracy_model = best_accuracy_model
+                                    global_best_accuracy_features = (feature,feature2)
 
-            # if counter >= 10 :
-            #     print("Overfitting, train stopped")
-            #     break
 
-            old_valid = valid_loss
+                            ###### Reset de X ######
+                            X_temp = []
+                            X_temp.append(self.features[feature])
 
+            ###### Save best global model ######
+            pickle.dump(global_best_accuracy_model, open("{}{}_{}_global_best_model.pickle".format(self.best_model_path,global_best_accuracy_features[0],global_best_accuracy_features[1]), "wb"))
+            print("Global best accuracy : {} with C = {} and gamma = {} for the following features : {} and {}".format(global_best_accuracy,global_best_accuracy_c,global_best_accuracy_gamma,global_best_accuracy_features[0],global_best_accuracy_features[1]))
+        
+            
+        else :
+            # Compute de X and y
+            X= []
+            for k,feature in enumerate(self.feature_use):
+                if feature not in ['rms','spectral_centroid','spectral_bandwidth','spectral_rolloff','spectral_flatness','zero_crossing_rate']:
+                    print("Feature {} not in the list of available features".format(feature))
+                    return
+                else:
+                    X.append(self.features[feature])
+            X=np.asarray(X).T
+            
+            y = self.labels
 
-            ##################### Visu #############################
-            if epoch%self.add_figure_sound == 0:
-                nb_images = 3
-                batch_test = next(iter(self.valid_loader))
+            # Diviser les données en données d'entraînement et de test
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = self.valid_ratio, random_state=42)
+            
+            for i,c in enumerate(np.linspace(self.C_svm[0],self.C_svm[-1],self.step)):
+                # Entraîner le modèle SVM
+                clf = svm.SVC(gamma = 'scale', # gamma = gamma,
+                                C = c, 
+                                kernel = self.kernel_svm)
+                gamma =  1 / ((k+1) * X_train.var())
+                clf.fit(X_train, y_train)
                 
-                batch_test = batch_test.to(self.device)
-                predictions,_ = self.model(batch_test)
-                samples_rec = predictions[0:nb_images,:].cpu().detach().numpy()
-                samples = batch_test[0:nb_images,:].cpu().detach().numpy()
-                Fe = len(samples_rec[0][0])//2
-
-                figure, ax = plt.subplots(nrows=nb_images, sharex=True)
-                for i in range(nb_images):
-                    librosa.display.waveshow(samples[i][0,:], sr=Fe, alpha=0.9, ax=ax[i], label='Original')
-                    librosa.display.waveshow(samples_rec[i][0,:], sr=Fe, color='r', alpha=0.5, ax=ax[i], label='Reconstructed')
-                    ax[i].set(title=f'Sound {i+1}')
-                    #plt.grid()
-                    if i==0:
-                        ax[i].legend()
-
-                plt.tight_layout()
-
-                self.writer.add_figure("Waveform", figure, epoch)
-
+                # Évaluer le modèle
+                accuracy = clf.score(X_test, y_test)
+                #print("Accuracy: ", accuracy)
+                self.writer.add_scalar("Accuracy", accuracy,i)
+                self.writer.flush()
+                
+                disp = ConfusionMatrixDisplay.from_estimator(
+                    clf,
+                    X_test,
+                    y_test,
+                    display_labels=self.classes_names,
+                    cmap=plt.cm.Blues,
+                    normalize=None,
+                )
+                disp.ax_.set_title("Confusion Matrix for C = {}".format(c))
+                #plt.show()
+                self.writer.add_figure("Confusion Matrix", disp.figure_,i)
                 self.writer.flush()
 
-                 """
+                
 
+                # Save the best model
+                if i == 0 :
+                    best_accuracy = accuracy
+                    best_accuracy_c = c
+                    best_accuracy_gamma = gamma
+                    best_accuracy_model = clf
+                    
+                else:
+                    if accuracy > best_accuracy:
+                        best_accuracy = accuracy
+                        best_accuracy_c = c
+                        best_accuracy_gamma = gamma
+                        best_accuracy_model = clf
+                        
+            pickle.dump(best_accuracy_model, open(self.best_trained_model_path, "wb"))
+            print("Best accuracy : {} with C = {} and gamma = {} for the following features{}".format(best_accuracy,best_accuracy_c,best_accuracy_gamma,self.feature_use))
+            
+
+        
+        
+
+
+
+"""         for i,c in enumerate(np.linspace(self.C_svm[0],self.C_svm[-1],self.step)):
+            print("Iteration : ",i)
+          
+            # Entraîner le modèle SVM
+            
+            clf = svm.SVC(gamma = 'scale', # gamma = gamma,
+                            C = c, 
+                            kernel = self.kernel_svm)
+            gamma =  1 / ((k+1) * X_train.var())
+            clf.fit(X_train, y_train)
+            
+            # Évaluer le modèle
+            accuracy = clf.score(X_test, y_test)
+            self.writer.add_scalar("Accuracy", accuracy,i)
+            self.writer.flush()
+
+            # Save the best model
+            if i == 0 :
+                best_accuracy = accuracy
+                best_accuracy_c = c
+                best_accuracy_gamma = gamma
+                best_accuracy_model = clf
+                pickle.dump(best_accuracy_model, open(self.best_trained_model_path, "wb"))
+                
+            else:
+                if accuracy > best_accuracy:
+                    best_accuracy = accuracy
+                    best_accuracy_c = c
+                    best_accuracy_gamma = gamma
+                    best_accuracy_model = clf
+                    pickle.dump(best_accuracy_model, open(self.best_trained_model_path, "wb"))
+        
+                    
+        # Plot the best model for acombinaison of features        
+        disp = ConfusionMatrixDisplay.from_estimator(
+            best_accuracy_model,
+            X_test,
+            y_test,
+            display_labels=self.classes_names,
+            cmap=plt.cm.Blues,
+            normalize=None,
+        )
+        disp.ax_.set_title("Confusion Matrix Best Model")
+        
+        self.writer.add_figure("Confusion Matrix", disp.figure_,i)
+        self.writer.flush()
+
+        print("Best accuracy : {} with C = {} and gamma = {} for the following features{}".format(best_accuracy,best_accuracy_c,best_accuracy_gamma,self.feature_use)) """
