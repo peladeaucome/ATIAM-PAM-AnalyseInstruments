@@ -180,7 +180,6 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     K = diags(K_lin)
     C = diags(C_lin)
 
-    #print(M,K,C,phiS_Nx_NmS)
     return(M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS)
 
 def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, model = False, mode = 'A1',x =0, y = 0):
@@ -222,8 +221,8 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
     W = np.eye(NmS+NmB) - M_inv_demi @ Bplus @ Aa
 
     Z = - M.sqrt() @ Bplus @ Aa #pour calculer la force ensuite
-    
-    print(W,Z)
+
+    #print(W,Z)
     return(W,Z,xyc)
 
 def Simu_config(xS,Fe, T = 3):
@@ -282,6 +281,7 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
     point_temp = len(t)
     #print(NmS,NmB,point_temp,FextS_NxS_Nt.shape)
     #comme il n'y a pas de force extérieur sur la table, leur projection sur la base modale vaut 0
+
     F_pro_tot = np.zeros((NmS+NmB,point_temp)) 
     F_pro_tot[:NmS,:] = F_pro_cor
 
@@ -305,7 +305,7 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
 
         q_d_temp = q_d_temp + 0.5 * h * (q_dd_temp[:,i] + q_dd_temp[:,i+1])
 
-    Q = q_temp
+    Q = q_dd_temp
 
     F_c = Z @ q_pour_f
 
@@ -317,7 +317,8 @@ def Calcul_force(F_c,NmS,phiS_Nx_NmS):
     return(FS_NxS_Nt)
 
 def Calcul_accel(Q,NmS,xyc,phiB_Nxy_NmB):
-    QB = Q[NmS:,:]
+    QB = Q[NmS :,:]
+    #print(xyc)
     QB_nT = phiB_Nxy_NmB[xyc,:] @ QB
     return(QB_nT)
 
@@ -326,7 +327,7 @@ def Calcul_force_2(F_c,NmS,phiB_Nxy_NmB,xyc):
     FS_NxS_Nt_2 = phiB_Nxy_NmB[xyc,:] @ FS
     return(FS_NxS_Nt_2)
 
-def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe,obs = False):
+def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
     input : 
     - T : tension de la corde
@@ -346,13 +347,11 @@ def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe,obs = False):
     - La force exercé au chevalet par la corde
     """
 
-    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
+    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB)
     W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     Q, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
-    F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
-    F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)
-    Q_nT = 0
-    if obs :
-        Q_nT = Calcul_accel(Q,NmS,xyc,phiB_NxNy_NmB)
-    return(Q_nT,F,F_2)
+    #F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
+    #F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)   
+    Q_nT = Calcul_accel(Q,NmS,xyc,phiB_NxNy_NmB)
+    return(Q_nT)
