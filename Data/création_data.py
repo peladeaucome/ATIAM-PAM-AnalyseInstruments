@@ -24,7 +24,8 @@ def latin_hypercube_sample(n, dim, bounds):
 def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = False, medium_1T = False, medium_2T= False, metal_T = False,plexi_T = False):
 
     ######################corde : 
-    T, rho_l, Lc, r, B_E = parametre_corde(article = article_C, acier_1 = acier_1C, acier_2 = acier_2C)
+    T, rho_l, Lc, B = parametre_corde(article = article_C, acier_1 = acier_1C, acier_2 = acier_2C)
+
     T_min = T - T * v.T_delta
     T_max = T + T * v.T_delta
 
@@ -34,30 +35,8 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
     Lc_min = Lc - Lc * v.Lc_delta
     Lc_max = Lc + Lc * v.Lc_delta
 
-    r_min = r - r * v.r_delta
-    r_max = r + r * v.r_delta
-
-    #calculé
-    masseC_min = rho_l_min * Lc_min
-    masseC_max = rho_l_max * Lc_max
-
-    # I_min = masseC_min * r_min **2 / 2
-    #I_max = masseC_max * r_max **2 / 2
-
-    I_min = np.pi * r_min ** 4 / 2
-    I_max = np.pi * r_max ** 4 / 2
-
-    if article_C : ##if article B_E est le coef d'inharmonicité
-        B_E_min =  B_E - B_E * v.B_delta
-        B_E_max =  B_E + B_E * v.B_delta
-
-        E_corde_min = B_E_min / I_max
-        E_corde_max = B_E_max / I_min
-        print(E_corde_min,E_corde_max)
-
-    if acier_1C or acier_2C : ## if acier, B_E est le modul de Young direct
-        E_corde_min = B_E - B_E * v.E_delta
-        E_corde_max = B_E + B_E * v.E_delta
+    B_min =  B - B * v.B_delta
+    B_max =  B + B * v.B_delta
 
     ########## table : 
     rhoT, L_x ,L_y, h, E_nu, xinB = table(medium_1 = medium_1T ,medium_2 = medium_2T, metal = metal_T, plexi = plexi_T  )
@@ -81,8 +60,8 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
 
     #### Création des paramètres dataset
 
-    bounds = [(T_min,T_max),(rho_l_min,rho_l_max),(Lc_min,Lc_max), ( E_corde_min,E_corde_max),(I_min,I_max),(h_min,h_max),(E_nu_min,E_nu_max),
+    bounds = [(T_min,T_max),(rho_l_min,rho_l_max),(Lc_min,Lc_max),(B_min,B_max),(h_min,h_max),(E_nu_min,E_nu_max),
             (rhoT_min,rhoT_max),(L_xmin,L_xmax),(L_ymin,L_ymax)]
 
-    param_dataset = latin_hypercube_sample(N_sample,10,bounds)
+    param_dataset = latin_hypercube_sample(N_sample,9,bounds)
     return(N_sample,param_dataset,xinB)
