@@ -287,10 +287,11 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
         q_d_temp = q_d_temp + 0.5 * h * (q_dd_temp[:,i] + q_dd_temp[:,i+1])
 
     Q = q_dd_temp
+    Q_pos = q_temp
 
     F_c = Z @ q_pour_f
 
-    return(Q,F_c)
+    return(Q,F_c,Q_pos)
 
 def Calcul_force(F_c,NmS,phiS_Nx_NmS):
     FS = F_c[:NmS,:]
@@ -330,8 +331,9 @@ def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     M, M_inv, C,K, phiS_Nx_NmS, phiB_NxNy_NmB, NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
     W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
-    Q, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
-    #F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
+    Q, F_c, Q_pos= lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
+    F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
     #F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)   
     Q_nT = Calcul_accel(Q,NmS,xyc,phiB_NxNy_NmB)
-    return(Q_nT)
+    Q_posnT = Calcul_accel(Q_pos,NmS,xyc,phiB_NxNy_NmB)
+    return(Q_nT,Q_posnT,F)

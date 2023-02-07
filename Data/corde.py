@@ -11,7 +11,7 @@ def parametre_corde(article = False, acier_1 = False,acier_2 = False):
         
     if acier_1 : ## corde de ré
 
-        T = 93.947707
+        T = 93.947707 + 10
         r = (0.71/2) * 1e-3
         Lc = 0.65
         rho = 7800  #(kg/m3) #de internet /4
