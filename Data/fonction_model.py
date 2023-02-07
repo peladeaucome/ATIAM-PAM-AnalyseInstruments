@@ -115,7 +115,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
     MB = np.ones(NmB)
-    MB_inv = MB #Il y a une erreur la non ?
+    MB_inv = MB 
     CB = 2 * MmB * wnB * xinB
     KB = MmB * wnB ** 2
     
@@ -132,7 +132,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     xS = np.linspace(0,L,NxS) #Vecteur de la corde
 
     ## Calcul des modes
-    phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis] / 2 / L) #Déformées d'une corde fixe aux extrémités
+    phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis] / 2 / L) #Déformées d'une corde fixe/libre
     pnS = (2 * NnS - 1) * np.pi / (2 * L)
     fnS = (ct / 2 / np.pi) * pnS * (1 + pnS**2 * B / (2 * T)) #Fréquences propres de la corde (hz)
 
@@ -145,8 +145,8 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
 
     ### Matrices modales
     MS = np.ones(NmS) * MmS
-    CS = MS * 2*wnS*xinS
-    KS = MS * wnS**2
+    CS = MS * 2 * wnS * xinS
+    KS = MS * wnS ** 2
     MS_inv = np.ones(NmS) * (1/MmS)
 
     ################# bigmatrix :
@@ -219,10 +219,10 @@ def Simu_config(xS,Fe, T = 3):
 
     """
     # Vecteur temps
-    #Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
+    # Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
     # Fe = 44100
     # print(f"Fréquence d'échantillonage : {Fe} Hz")
-    #T = 10 #Temps d'acquisition (s)
+    # T = 10 #Temps d'acquisition (s)
     # print(f"Temps d'acquisition : {T} s")
     t = np.linspace(0, T, T*Fe) #Vecteur temps
     Nt = len(t)
@@ -327,7 +327,7 @@ def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     - La force exercé au chevalet par la corde
     """
 
-    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
+    M, M_inv, C,K, phiS_Nx_NmS, phiB_NxNy_NmB, NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
     W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     Q, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
