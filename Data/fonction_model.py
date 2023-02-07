@@ -21,7 +21,7 @@ def find_nearest_index(array, value, nearest_value=False):
         return idx, array[idx]
     return idx
 
-def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E_c = 4, I = 10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
+def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, B = 4*10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
     """
     input:
     - h : hauteur de la table
@@ -32,8 +32,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     - T : tension de la corde
     - rho_l : masse linéique de la corde
     - L : longeur de la table
-    - E_c : module de young de la corde
-    - I : moment d'inertie de la corde
+    - B : coef d'inharmonicité de la table
     - xinB : amortissement modaux des 9 premiers modes de la table 
 
     En premier ce code fait l'analyse modale de la table, en la supposant simplement supporté, puis de la corde, 
@@ -54,14 +53,6 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
 
     """
     ################## plaque : 
-    ## Paramètres physique
-    #h = 2.8e-3 #Epaisseur de  la plaque (m)
-    #nu = 0.2 #Coeff de poisson (Pa)
-    #E = 7e9 #Module de Young (Pa)
-    #rho = 400 #Masse volumique (kg/m3)
-    ##D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque  : t'en as pas besoin???
-    ##eta = 0.02 #Amortissement interne à la plaque à réfléchir 
-    #Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
 
     ## Paramètres de discrétisation
     NB = 3          #Nombre de modes selon x
@@ -95,10 +86,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     ### Tri par ordre de fréquences croissantes
     tri_idx = np.argsort(wnB)
 
-    wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant
-    #fnB = wnB/(2*np.pi)
-    #print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
-    #xinB = np.array([eta/2]*NmB) 
+    wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant 
 
     NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 
@@ -133,28 +121,21 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     
     ################################## cordes
     ## Paramètres physique
-    #L = 0.65 #longueur de corde (m) # à changer dans la def de simu_config si on change
-    #f1 = 110 #freq de la corde (hz)
-    #T = 73.9 #tension de la corde (N)
-    #rho_l = 3.61 * 10**(-3) #masse linéique (kg/m)
+
     ct = np.sqrt(T / rho_l) #célérité des ondes transverse (M/s)
-    B = E_c * I
-    #B = 4*10**(-5) #coefficient d'inarmonicité : B = E*I (N*m**2)
 
     ## Paramètres de discrétisation
     NmS = 75  #Modes de cordes
     NnS = np.arange(1,NmS+1)
 
     NxS = 1000 #Discrétisation spatiale
-    #dx =  (ct+1) / Fe 
-    #xS = np.arange(0,L, dx)
     xS = np.linspace(0,L,NxS) #Vecteur de la corde
 
     ## Calcul des modes
     phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis] / 2 / L) #Déformées d'une corde fixe aux extrémités
     pnS = (2 * NnS - 1) * np.pi / (2 * L)
     fnS = (ct / 2 / np.pi) * pnS * (1 + pnS**2 * B / (2 * T)) #Fréquences propres de la corde (hz)
-    #print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
+
     wnS = 2*np.pi*fnS
 
     etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
@@ -327,14 +308,13 @@ def Calcul_force_2(F_c,NmS,phiB_Nxy_NmB,xyc):
     FS_NxS_Nt_2 = phiB_Nxy_NmB[xyc,:] @ FS
     return(FS_NxS_Nt_2)
 
-def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
+def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
     input : 
     - T : tension de la corde
     - rho_l : masse linéique de la corde
     - L : longueur de la corde
-    - E_corde : module de Young de la corde
-    - I : moment d'inertie de la corde
+    - B : coefficient d'inharmonicité de la corde
     - h : hauteur de la table
     - E_nu : rapport E/(1-nu**2) de la table
     - rhoT : masse volumique de la table
@@ -347,7 +327,7 @@ def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     - La force exercé au chevalet par la corde
     """
 
-    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB)
+    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
     W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     Q, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
