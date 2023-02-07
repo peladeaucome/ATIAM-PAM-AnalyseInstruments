@@ -24,7 +24,7 @@ def omega_pq (p,q, h, E_nu, rho, Lx, Ly) :
 def phi_pq (p,q,x,y, Lx, Ly) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
         return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
 
-def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
+def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, B, xinB) :
     #============================================= TABLE =============================================
     ## Paramètres de discrétisation
     NB, MB = 3, 3 #Nombre de modes selon x, y
@@ -84,7 +84,6 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
     
     #============================================= CORDE =============================================
     ct = np.sqrt(T / rho_l) #célérité des ondes transverse (M/s)
-    B = E_c * I
 
     ## Paramètres de discrétisation
     NmS = 75  #Modes de cordes
@@ -264,7 +263,7 @@ def launch_simu_ss(t, FextS_NxS_Nt, phiS_Nx_NmS, NmS, NmB, MBinv, MSinv, KS, KB,
 
     return Q, U
 
-def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
+def Main_ss(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
     """
     input : 
     - T : tension de la corde
@@ -286,8 +285,8 @@ def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
     """
 
     # M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
-    (M, M_inv, MB_inv, MS_inv, _,_, KB,KS, CB,CS, phiS_Nx_NmS, phiB_NxNy_NmB, NmS, NmB, x, y, xS) = bigdickenergy_ss(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB)
-    W,Z, xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = False, model = True, mode = 'A1', x=x, y=y)
+    (M, M_inv, MB_inv, MS_inv, _,_, KB,KS, CB,CS, phiS_Nx_NmS, phiB_NxNy_NmB, NmS, NmB, x, y, xS) = bigdickenergy_ss(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , B, xinB)
+    W,Z, xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = False, model = True, mode = 'A2', x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
     
     #Pour observer la force :
@@ -322,7 +321,6 @@ def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
     
     elif obs == "acc" :
         Q, U = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W, obs="all")
-        # pos_chev_Nt = phiS_Nx_NmS[-1,:] @ Q[:NmS]
 
         BG = np.block([
             [-MS_inv @ KS, np.zeros((NmS,NmB))],
@@ -348,8 +346,7 @@ def Main_ss(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
         acc_Nm_Nt = W @ acc_u_Nm_Nt
 
         acc_table_Nt = phiB_NxNy_NmB[xyc,:] @ acc_Nm_Nt[NmS:,:]
-        return acc_table_Nt,x, y
-    
+        return acc_table_Nt
     elif obs == "pos" :
         Q, _ = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W, obs="pos")
         pos_chev_Nt = phiS_Nx_NmS[-10,:] @ Q[:NmS]
