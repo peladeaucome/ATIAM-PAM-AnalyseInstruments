@@ -159,7 +159,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = True, mo
 
     return (W,Z, xyc)
 
-def Simu_config(xS,Fe, T = 3):
+def Simu_config(xS,Fe, T = 3, exc="gliss"):
     """
     entrée :
     xS : discrétisation de la corde
@@ -178,9 +178,21 @@ def Simu_config(xS,Fe, T = 3):
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
-    idx_deb = 0
-    idx_fin = int(0.4*1e-3*Fe)
-    Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
+    fm = 0.187 #d'après analyse force d'un plectre ulysse
+    if exc == "rampe" :
+        idx_deb = 0
+        idx_fin = int(0.16*Fe)
+        Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * fm #Dans ce cas, Fext est une rampe
+
+        idx_zero = idx_fin + 100
+        Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * fm #Dans ce cas, Fext est une rampe
+
+    if exc == "gliss" :
+        t1 = int(0.16*Fe) #indice du temps où l'on lâche la corde
+        t2 = t1 + int(1/2*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment
+
+        Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
+        Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
 
     xe_idx = find_nearest_index(xS, 0.9*L)
     NxS = len(xS)
@@ -188,7 +200,7 @@ def Simu_config(xS,Fe, T = 3):
     FextS_NxS_Nt = np.zeros((NxS,Nt))
     FextS_NxS_Nt[xe_idx, : ] = Fext
 
-    plot_fext = False
+    plot_fext = True
     if plot_fext :
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
@@ -251,7 +263,9 @@ def launch_simu_ss(t, FextS_NxS_Nt, phiS_Nx_NmS, NmS, NmB, MBinv, MSinv, KS, KB,
         C = np.block([
             [np.eye(NmS+NmB) ,  np.zeros((NmS+NmB,NmS+NmB))]
         ])
-
+        C = np.block([
+            [np.zeros((NmS+NmB,NmS+NmB)),np.eye(NmS+NmB)]
+        ])
         sys = control.StateSpace(A,B,C,D)
 
         t, Q = control.forced_response(sys, T=t, U=U, X0=0)
@@ -284,7 +298,6 @@ def Main_ss(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
     - Force_au_chevalet_Nt : l'évolution temporelle de force au chevalet
     """
 
-    # M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
     (M, M_inv, MB_inv, MS_inv, _,_, KB,KS, CB,CS, phiS_Nx_NmS, phiB_NxNy_NmB, NmS, NmB, x, y, xS) = bigdickenergy_ss(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , B, xinB)
     W,Z, xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = False, model = True, mode = 'A2', x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
