@@ -10,5 +10,5 @@ Classification/A000_SVM/Data
 
 Classification/B000_Deep/runs
 *Test.py
-#*copy.py
+*copy.py
 Classification/_dataset_/Dataset
