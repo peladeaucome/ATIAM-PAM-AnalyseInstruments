@@ -189,7 +189,7 @@ def Simu_config(xS,Fe, T = 3, exc="gliss"):
 
     if exc == "gliss" :
         t1 = int(0.16*Fe) #indice du temps où l'on lâche la corde
-        t2 = t1 + int(1/2*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment
+        t2 = t1 + int(1/2*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
 
         Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
         Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
