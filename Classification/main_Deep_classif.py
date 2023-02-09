@@ -2,14 +2,14 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 # Import des fichiers du modele
-import B000_Deep.configs.config as config
+import A100_Deep_classif.configs.config as config
 import _dataset_.Dataset as dataset
-import B000_Deep.models.CNN_MLP 
-import B000_Deep.train.Train
+import A100_Deep_classif.models.CNN_MLP 
+import A100_Deep_classif.train.Train
 import time
 
 ############################################################# A MODIF #########################
-path_main = "./Classification/B000_Deep"
+path_main = "./Classification/A100_Deep_classif"
 path_dataset = "./Classification/_dataset_/Dataset/Dataset_1/"
 ############################################################# A MODIF #########################
 
@@ -26,8 +26,8 @@ list_dataset,label_num = dataset.load_data(path=path_dataset,
                                            dataset_type=main_config.dataset.dataset_type,
                                            fs=main_config.dataset.fs,
                                            resample=main_config.dataset.resample,
-                                           resample_rate=main_config.dataset.resample_rate)
-
+                                           resample_rate=main_config.dataset.resample_rate,
+                                           use = "Deep_classif")
 
 train_loader,valid_loader = dataset.Create_Dataset(dataset= list_dataset,
                                                    valid_ratio = main_config.dataset.valid_ratio,
@@ -51,21 +51,20 @@ config_path = "{}/runs/{}".format(path_main, main_config.model.model_name)
 config_name = "{}/{}_train_config.yaml".format(config_path, main_config.model.model_name)   
 config.save_config(main_config , config_name)
 
-sample_batch = next(iter(train_loader))    
-sample_batch[0] = sample_batch[0][:,None,:]
+sample_batch = next(iter(train_loader))
 
-model = B000_Deep.models.CNN_MLP.CNN_MLP(data = sample_batch,
-                               output_dim = main_config.model.output_dim,
-                               ratios_CNN = main_config.model.ratios_CNN,
-                               channel_size = main_config.model.channel_size,
-                               size_MLP = main_config.model.size_MLP
-                               ).to(device)
+model = A100_Deep_classif.models.CNN_MLP.CNN_MLP(data = sample_batch,
+                                                 nb_classes = main_config.model.nb_classes,
+                                                 ratios_CNN = main_config.model.ratios_CNN,
+                                                 channel_size = main_config.model.channel_size,
+                                                 size_MLP = main_config.model.size_MLP
+                                                 ).to(device)
 
 print("\n")
-print(summary(model,(sample_batch[0].size()[1],sample_batch[0].size()[2])))
+print(summary(model,(sample_batch[0].size()[1],sample_batch[0].size()[2],sample_batch[0].size()[3])))
 print("\n")
 
-model_train = B000_Deep.train.Train.train(model = model,
+model_train = A100_Deep_classif.train.Train.train(model = model,
                               train_loader = train_loader,
                               valid_loader = valid_loader,
                               num_epochs = main_config.train.epochs,

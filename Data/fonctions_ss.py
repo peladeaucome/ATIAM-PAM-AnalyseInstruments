@@ -24,7 +24,7 @@ def omega_pq (p,q, h, E_nu, rho, Lx, Ly) :
 def phi_pq (p,q,x,y, Lx, Ly) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
         return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
 
-def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
+def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, B, xinB) :
     #============================================= TABLE =============================================
     ## Paramètres de discrétisation
     NB, MB = 3, 3 #Nombre de modes selon x, y
@@ -51,6 +51,8 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
     tri_idx = np.argsort(wnB)
 
     wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant
+    fnB = wnB/2/np.pi
+    # print(fnB)
     NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
     #print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
 
@@ -82,7 +84,6 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
     
     #============================================= CORDE =============================================
     ct = np.sqrt(T / rho_l) #célérité des ondes transverse (M/s)
-    B = E_c * I
 
     ## Paramètres de discrétisation
     NmS = 75  #Modes de cordes
@@ -98,8 +99,11 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
     #print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
     wnS = 2*np.pi*fnS
 
-    etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
+    etaf, etaA, etaB = 7e-5, 0.9, 1/10*2.5e-2 
+    #etaA semble gérer plutot l'enveloppe temporelle générale à l'écoute, etaB semble ajuster plutôt l'amortissement des hautes fréquences
+    #
     xinS = 1/2 * ( T*(etaf + etaA / 2 / np.pi / fnS) + etaB * B*pnS**2 ) / (T + B*pnS**2) #Amortissements modaux de la corde (ø)
+    print(xinS)
 
     MmS = rho_l * L / 2  #Masses modales de la corde (kg)
 
@@ -119,7 +123,8 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, E_c, I, xinB) :
 
 def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = True, model = False, mode = 'A1',x =0, y = 0):
     phiSB = phiS_Nx_NmS[-1,:] #déformée de la corde au point du chevalet
-    phiSF = phiS_Nx_NmS[int(len(xS)/4),:] #déformée de la corde au point d'appuis du doigt du guitariste
+    phiSF = phiS_Nx_NmS[20,:] #déformée de la corde au point d'appuis du doigt du guitariste
+    # phiSF = np.ones(NmS)*1e-10 #déformée de la corde au point d'appuis du doigt du guitariste
 
     if model : 
         Nx = len(x)
@@ -128,7 +133,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = True, mo
         xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
         xc_idx, yc_idx = find_nearest_index(x, xc), find_nearest_index(y, yc)
         xyc = ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
-        #print(xyc)
+        # print(xc_idx, yc_idx)
         #pour modèle de la plaque:
         phiBS = phiB_NxNy_NmB[xyc,:]
 
@@ -155,9 +160,9 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = True, mo
 
     Z = - np.sqrt(M) @ Bplus @ Aa #pour calculer la force ensuite
 
-    return(W,Z)
+    return (W,Z, xyc)
 
-def Simu_config(xS,Fe, T = 3):
+def Simu_config(xS,Fe, T = 3, exc="gliss"):
     """
     entrée :
     xS : discrétisation de la corde
@@ -176,9 +181,21 @@ def Simu_config(xS,Fe, T = 3):
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
-    idx_deb = 0
-    idx_fin = int(0.4*1e-3*Fe)
-    Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
+    fm = 0.187 #d'après analyse force d'un plectre ulysse
+    if exc == "rampe" :
+        idx_deb = 0
+        idx_fin = int(0.16*Fe)
+        Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * fm #Dans ce cas, Fext est une rampe
+
+        idx_zero = idx_fin + 100
+        Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * fm #Dans ce cas, Fext est une rampe
+
+    if exc == "gliss" :
+        t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
+        t2 = t1 + int(0.5*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
+
+        Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
+        Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
 
     xe_idx = find_nearest_index(xS, 0.9*L)
     NxS = len(xS)
@@ -204,17 +221,19 @@ def Simu_config(xS,Fe, T = 3):
     return(t,FextS_NxS_Nt)
 
 import control
-def launch_simu_ss(t, FextS_NxS_Nt, phiS_Nx_NmS, NmS, NmB, MBinv, MSinv, KS, KB, CS, CB, W) :
+def launch_simu_ss(t, FextS_NxS_Nt, phiS_Nx_NmS, NmS, NmB, MBinv, MSinv, KS, KB, CS, CB, W, obs="all") :
     """
     Ce code permet de configurer l'espace d'état du modèle et de lancer une simulation temporelle.
 
-    # Entrées
+    ## Entrées
     - Configuration de guitare préalablement établie dans "guitare_config.py"
     - Paramètres issue de la formulation d'Udwadia-Kalaba établis dans "UK_parameters.py"
     - Paramètres de simulation : force extérieure "FextS_NxS_Nt", vecteur temps de simulation "t"
+    - `obs` : si obs=="pos", le vecteur de sortie est de taille NmB+NmS et correspond aux participations en position.
+    Si obs=="all", le vecteur de sortie est de taille 2*(NmB+NmS) et correspond aux participations en position et en vitesse concaténées.
 
-    # Sortie
-    - Vecteur Q de dimension (NmS+NmB, Nt) : représente l'évolution des participations modales au cours du temps de la position de la corde sur les NmS premières coordonnées, et de la table sur les NmB dernières coordonnées.
+    ## Sortie
+    - Vecteur Q de dimension `(NmS+NmB, Nt)` ou `(2*(NmS+NmB, Nt))` : représente l'évolution des participations modales au cours du temps de la position de la corde sur les NmS premières coordonnées, et de la table sur les NmB dernières coordonnées.
     """
 
     ABG = W @ np.block([
@@ -239,17 +258,112 @@ def launch_simu_ss(t, FextS_NxS_Nt, phiS_Nx_NmS, NmS, NmB, MBinv, MSinv, KS, KB,
             ])]
     ])
 
-    #Pour observer la position
-    C = np.block([
-        [np.eye(NmS+NmB) ,  np.zeros((NmS+NmB,NmS+NmB))]
-    ])
-
     D = 0
-
-    sys = control.StateSpace(A,B,C,D)
-
     U = phiS_Nx_NmS.T @ FextS_NxS_Nt
 
-    t, Q = control.forced_response(sys, T=t, U=U, X0=0)
+    if obs == "pos" :
+        #Pour observer la position
+        C = np.block([
+            [np.eye(NmS+NmB) ,  np.zeros((NmS+NmB,NmS+NmB))]
+        ])
+        C = np.block([
+            [np.zeros((NmS+NmB,NmS+NmB)),np.eye(NmS+NmB)]
+        ])
+        sys = control.StateSpace(A,B,C,D)
 
-    return Q
+        t, Q = control.forced_response(sys, T=t, U=U, X0=0)
+    if obs == "all" :
+        C = np.eye(2*(NmS+NmB))
+        sys = control.StateSpace(A,B,C,D)
+
+        t, Q = control.forced_response(sys, T=t, U=U, X0=0)
+
+    return Q, U
+
+def Main_ss(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe, obs="force"):
+    """
+    input : 
+    - T : tension de la corde
+    - rho_l : masse linéique de la corde
+    - L : longueur de la corde
+    - E_corde : module de Young de la corde
+    - I : moment d'inertie de la corde
+    - h : hauteur de la table
+    - E_nu : rapport E/(1-nu**2) de la table
+    - rhoT : masse volumique de la table
+    - Lx : largueur celon x de la table
+    - Ly : largeur celon y de la table
+    - xinB : coef d'amortissement des 9 premiers modes de la table
+    - Fe : fréquence d'échantillonage
+
+    retun:
+    # - pos_chev_Nt : l'évolution temporelle de la position de la corde au point du chevalet
+    - Force_au_chevalet_Nt : l'évolution temporelle de force au chevalet
+    """
+
+    (M, M_inv, MB_inv, MS_inv, _,_, KB,KS, CB,CS, phiS_Nx_NmS, phiB_NxNy_NmB, NmS, NmB, x, y, xS) = bigdickenergy_ss(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , B, xinB)
+    W,Z, xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = False, model = True, mode = 'A2', x=x, y=y)
+    t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
+    
+    #Pour observer la force :
+    if obs == "force" :
+        Q, U = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W, obs="all")
+        # pos_chev_Nt = phiS_Nx_NmS[-1,:] @ Q[:NmS]
+
+        BG = np.block([
+            [-MS_inv @ KS, np.zeros((NmS,NmB))],
+            [np.zeros((NmB, NmS)), -MB_inv @ KB]
+        ])
+        BD = np.block([
+            [-MS_inv @ CS, np.zeros((NmS,NmB))],
+            [np.zeros((NmB, NmS)), -MB_inv @ CB]
+        ])
+        mat_to_acc_u = np.block([
+            [BG, BG]
+        ])
+
+        B_new = np.block([
+        [np.block([
+            [MS_inv],
+            [np.zeros((NmB, NmS))]
+            ])]
+        ])
+
+        acc_u_Nm_Nt = mat_to_acc_u @ Q + B_new @ U
+        Fc_Nm_Nt = Z @ acc_u_Nm_Nt
+
+        Force_au_chevalet_Nt = phiS_Nx_NmS[-1,:] @ Fc_Nm_Nt[:NmS,:]
+        return Force_au_chevalet_Nt
+    
+    elif obs == "acc" :
+        Q, U = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W, obs="all")
+
+        BG = np.block([
+            [-MS_inv @ KS, np.zeros((NmS,NmB))],
+            [np.zeros((NmB, NmS)), -MB_inv @ KB]
+        ])
+        BD = np.block([
+            [-MS_inv @ CS, np.zeros((NmS,NmB))],
+            [np.zeros((NmB, NmS)), -MB_inv @ CB]
+        ])
+        mat_to_acc_u = np.block([
+            [BG, BG]
+        ])
+
+        B_new = np.block([
+        [np.block([
+            [MS_inv],
+            [np.zeros((NmB, NmS))]
+            ])]
+        ])
+
+        acc_u_Nm_Nt = mat_to_acc_u @ Q + B_new @ U
+        # Fc_Nm_Nt = Z @ acc_u_Nm_Nt
+        acc_Nm_Nt = W @ acc_u_Nm_Nt
+
+        acc_table_Nt = phiB_NxNy_NmB[xyc,:] @ acc_Nm_Nt[NmS:,:]
+        return acc_table_Nt
+    elif obs == "pos" :
+        Q, _ = launch_simu_ss(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,MB_inv, MS_inv, KS,KB, CS,CB ,W, obs="pos")
+        pos_chev_Nt = phiS_Nx_NmS[-10,:] @ Q[:NmS]
+        return pos_chev_Nt

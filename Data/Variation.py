@@ -8,11 +8,7 @@ rho_delta = 0 #0.01
 
 Lc_delta = 0 #0.01
 
-r_delta = 0 #0.01
-
 B_delta = 0 #0.01
-
-E_delta = 0 #0.01
 
 ### variation de table : 
 

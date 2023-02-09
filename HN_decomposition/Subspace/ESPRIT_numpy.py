@@ -3,6 +3,7 @@ import scipy.signal as sig
 import scipy.linalg
 import numpy.typing as npt
 import scipy
+from . import PQMF
 
 def LeastSquare(x:npt.ArrayLike, damp:npt.ArrayLike, redFreq:npt.ArrayLike):
     """
@@ -47,19 +48,21 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
     """
     Performs the ESPRIT algorithm over the input signal
     
-    args :
-        - x : array-like [signal_length]
-            input signal
-        - num_poles : int
-            number of poles to find
+    Parameters :
+    ------------
+    `x` : array-like [signal_length]
+        input signal
+    `num_poles` : int
+        number of poles to find
 
-    returns:
-        - poles : array-like
-            Complex poles of the signal
-        - complexAmp : array-like
-            Complex amplitudes of the signal
-        - Lambda : array-like
-            eigen-values of the autocorrelation matrix
+    Returns :
+    ---------
+    `poles` : array-like
+        Complex poles of the signal
+    `complexAmp` : array-like
+        Complex amplitudes of the signal
+    `Lambda` : array-like
+        Eigen-values of the autocorrelation matrix
     """
     mat_size = len(x)//2
     #mat_size = num_poles*4
@@ -94,7 +97,10 @@ def ESPRIT(x:npt.ArrayLike,num_poles:int):
 
 
 def norm2(x):
-        return np.sum(np.square(np.abs(x)))
+    """
+    Returns the L2 norm of a matrix of array
+    """
+    return np.sum(np.square(np.abs(x)))
 
 def ddiag(x):
     return np.diag(np.diag(x))
@@ -105,22 +111,24 @@ def HRHATRAC(xChopped:npt.ArrayLike, num_poles:int, beta:float = 1,
     Performs the HRAHATRAC algorithm [1] with the exponential window Fast
     Approximate Power Iteration subspace-tracker [2].
    
-    args :
-        - x : array-like
-            input signal
-        - num_poles : int
-            dimension of the signal space 
-        - beta : float
-            forgetting factor
-        - mu_L : float
+    Parameters :
+    ------------
+    `x` : array-like
+        input signal
+    `num_poles` : int
+        dimension of the signal space 
+    `beta` : float
+        forgetting factor
+    `mu_L` : float
 
-        - mu_V : float
+    `mu_V` : float
 
-    returns:
-        - poles_list : array-like
-            List of the poles for each time frame
-        - complexAmp_list : array-like
-            List of the domplex amplitudes of the signal poles
+    Returns :
+    ---------
+    `poles_list` : array-like
+        List of the poles for each time frame
+    `complexAmp_list` : array-like
+        List of the domplex amplitudes of the signal poles
         
     References :
 
@@ -207,25 +215,27 @@ def HN_FAPI(xChopped:npt.ArrayLike, num_poles:int, beta:float,
     Performs an harmonic+noise decomposition by projecting onto the signal space
     estimated using the Fast Approximated Power Iteration (FAPI) algorithm
     
-    args :
-        - xChopped : array-like
-            input signal
-        - num_poles : int
-            dimension of the signal space onto which the signal is projected
-        - beta:float
-            Forgetting factor of the HRHATRAC algorithm
-        - xChoppedWhitened : array-like
-            preprocessed input siganl
-        - hop_length : int
-            hop length between consecutive time frames
-        - window_type : str
-            type of window to use. Uses `scipy.signal.get_window`.
+    Parameters :
+    ------------
+    `xChopped` : array-like
+        input signal
+    `num_poles` : int
+        dimension of the signal space onto which the signal is projected
+    `beta` : float
+        Forgetting factor of the HRHATRAC algorithm
+    `xChoppedWhitened` : array-like
+        preprocessed input siganl
+    `hop_length` : int
+        hop length between consecutive time frames
+    `window_type` : str
+        type of window to use. Uses `scipy.signal.get_window`.
 
-    returns:
-        - xHarmo : array-like
-            projection of the input signal onto the signal subspace
-        - xNoise : array-like
-            projection of the input signal onto the noise subspace
+    Returns :
+    ---------
+    `xHarmo` : array-like
+        projection of the input signal onto the signal subspace
+    `xNoise` : array-like
+        projection of the input signal onto the noise subspace
     """
 
     # Dimensions 
@@ -360,23 +370,25 @@ def HN_FAPI(xChopped:npt.ArrayLike, num_poles:int, beta:float,
     Performs an harmonic+noise decomposition by projecting onto the signal space
     estimated using the Fast Approximated Power Iteration (FAPI) algorithm
     
-    args :
-        - xChopped : array-like
-            input signal
-        - num_poles : int
-            dimension of the signal space onto which the signal is projected
-        - xChoppedWhitened : array-like
-            preprocessed input siganl
-        - hop_length : int
-            hop length between consecutive time frames
-        - window_type : str
-            type of window to use. Uses `scipy.signal.get_window`.
+    Parameters :
+    ------------
+    `xChopped` : array-like
+        input signal
+    `num_poles` : int
+        dimension of the signal space onto which the signal is projected
+    `xChoppedWhitened` : array-like
+        preprocessed input siganl
+    `hop_length` : int
+        hop length between consecutive time frames
+    `window_type` : str
+        type of window to use. Uses `scipy.signal.get_window`.
 
-    returns:
-        - xHarmo : array-like
-            projection of the input signal onto the signal subspace
-        - xNoise : array-like
-            projection of the input signal onto the noise subspace
+    Returns :
+    ---------
+    `xHarmo` : array-like
+        projection of the input signal onto the signal subspace
+    `xNoise` : array-like
+        projection of the input signal onto the noise subspace
     """
 
     # Dimensions 
@@ -454,13 +466,13 @@ def ESTER(
     
     Args :
     ------
-    `x` : `array-like`
+    `x` : array-like
         Input signal
-    `window_length` : `int`
+    `window_length` : int
         Length of the window on which the ESTER criterion is computed
-    `max_poles` : `int`
+    `max_poles` : int
         Max number of poles that can be estimated
-    `factor` : `float`
+    `factor` : float
         Threshold for the ESTER criterion
     
     Returns :
@@ -547,17 +559,18 @@ def rankFilter_stft(x_stft:npt.ArrayLike, rankFilter_bins:int, rankFilter_rank:f
     """
     Returns the noise PSD estimation
 
-    args :
-        - x_psd : array-like
-            input STFT (PSD)
-        - num_bins : int
-            number of frequency bins over which the quantile filter is performed
-        - rank : float
-            rank of the quantile filter. Should be between 0 and 1
+    Parameters :
+    ------------
+    `x_psd` : array-like
+        input STFT (PSD)
+    `num_bins` : int
+        number of frequency bins over which the quantile filter is performed
+    `rank` : float
+        rank of the quantile filter. Should be between 0 and 1
     
     returns :
-        - X_filt : array-like
-            STFT of the estimated noise
+    `X_filt` : array-like
+        STFT of the estimated noise
     """
     x_psd = np.square(np.abs(x_stft))
     rank_filtered_stft = np.zeros(np.shape(x_psd))
@@ -580,9 +593,10 @@ def compute_ARFilter(noise_psd:npt.ArrayLike, ARFilter_length:int):
         number of coefficients of the AR filter.
     
     returns :
-        - ARFilter_a : array-like
-            Coeffeicients of the AR filter (the initial '1' is added so that this function is suitable to be used 
-            as-is with the scipy.signal.lfilter function : scipy.signal.lfilter([1], ARFilter_a, x)).
+    ---------
+    `ARFilter_a` : array-like
+        Coeffeicients of the AR filter (the initial '1' is added so that this function is suitable to be used 
+        as-is with the scipy.signal.lfilter function : scipy.signal.lfilter([1], ARFilter_a, x)).
     """
     # Computing the autocorrelation vector
     noise_autocorr_vec = np.fft.irfft(noise_psd)[:ARFilter_length+1]
@@ -609,7 +623,8 @@ def window_signal(x:npt.ArrayLike, window_length:int, hop_length:int):
     `window_type` : str
         window type. Default : hann
     
-    returns :
+    Returns :
+    ---------
     `xChopped` : array-like
         each time frame of the original signal
     """
@@ -635,25 +650,27 @@ def whiten_signal(x:npt.ArrayLike, n_fft:int, rankFilter_bins:int, rankFilter_ra
     """
     Applies a filter to the input signal so that the underlying noise has a flat spectrum.
 
-    args :
-        - x : array-like
-            input signal
-        - rankFilter_bins : int
-            size of the rank filter
-        - rankFilter_rank : float or int
-            rank of the rank filter, which must be between 0 and 1
-        - ARFilter_length : int
-            size of he auto-regressive filter
-        - threshold : float
-            RMS threshold below which the signal is left unfiltered to avoid computation problems
-        - window_type : str
-            window type. Default : hann
+    Parameters :
+    ------------
+    `x` : array-like
+        input signal
+    `rankFilter_bins` : int
+        size of the rank filter
+    `rankFilter_rank` : float or int
+        rank of the rank filter, which must be between 0 and 1
+    `ARFilter_length` : int
+        size of he auto-regressive filter
+    `threshold` : float
+        RMS threshold below which the signal is left unfiltered to avoid computation problems
+    `window_type` : str
+        window type. Default : hann
     
-    returns :
-        - xWhitened : array-like, same size as x
-            x which has been 'whitened'
-        - ARFilters : array-like
-            coefficients of the AR-filter
+    Returns :
+    ---------
+    `xWhitened` : array-like, same size as x
+        x which has been 'whitened'
+    `ARFilters` : array-like
+        coefficients of the AR-filter
     """
     if window_type==None:
         window_type=='hann'
@@ -704,60 +721,6 @@ def compute_stft_from_windowed(xWhitened:npt.ArrayLike ,window_type:str ='hann')
     return xWhitened_stft
 
 
-def nearPR_CMFB(num_bands:int, num_taps:int = None, tol_transitionBand:float = None):
-    """
-    Returns near perfect reconstruction cosine-modulated filter bank
-    impulse responses
-
-    Parameters :
-    ------------
-    `num_bands` : int
-        Number of bands in which the signal needs to be splitted
-    `num_taps` : int
-        Length of the filters, in samples
-    `tol_transitionBand` : float
-        Tolerance of the transition band of the filters
-
-    Returns :
-    ---------
-    `filters` : array-like (num_bands, 10*num_bands-1)
-        Impulse responses of the filters
-    """
-    # Number of filter taps
-    if num_taps == None:
-        num_taps = 16*num_bands-1
-    # Width of the transition band
-    if tol_transitionBand == None:
-        tol_transitionBand = 1/(16*num_bands)
-
-    # Design of the protoype filter
-    prototype_filter_IR = sig.remez(
-        numtaps = num_taps,
-        bands = [
-            0,
-            1/(4*(num_bands-1)) - tol_transitionBand,
-            1/(4*(num_bands-1)) + tol_transitionBand,
-            1/2],
-        fs = 1,
-        type = 'bandpass',
-        desired = [1, 0],
-        weight= [1,1]
-    )
-
-    # Modulating the protoype filter to get the filter bank
-    Analysis_filters = np.zeros((num_bands, num_taps))
-    Synthesis_filters = np.zeros((num_bands, num_taps))
-    for band_idx in range(num_bands):
-        theta = np.power(-1, band_idx)*np.pi/4
-        Analysis_filters[band_idx] = prototype_filter_IR*np.cos(
-            np.pi*(np.arange(num_taps) - (num_taps)/2)*(band_idx+.5)/num_bands + theta
-            ) *2
-        Synthesis_filters[band_idx] = prototype_filter_IR*np.cos(
-            np.pi*(np.arange(num_taps) - num_taps/2)*(band_idx+.5)/num_bands - theta
-            ) *2
-    return Analysis_filters, Synthesis_filters
-
-
 def multiband_HN(
     x,
     window_length:int = 32,
@@ -768,6 +731,7 @@ def multiband_HN(
     """
     Performs the full H+N decomposition using sub-band filtering, per band noise
     whitenening.
+
     Parameters :
     ------------
     `x` : array-like
@@ -786,6 +750,14 @@ def multiband_HN(
         Projection of `x` onto the signal space
     `xNoise` : array-like
         Projection of `x` onto the noise space
+    
+    krwags :
+    --------
+    `bandFilters_taps` : int
+    `bandFilters_tol` : float
+    `window_type` : float
+    `tracking_method` : str ('classic' or 'FAPI')
+    `FAPI_beta` : float
     """
     
     # kwargs
@@ -817,15 +789,17 @@ def multiband_HN(
     else:
         tracking_method = "classic"
 
-    Analysis_filters, Synthesis_filters = nearPR_CMFB(
+    if "max_poles" in kwargs:
+        max_poles = kwargs["max_poles"]
+    else:
+        max_poles = 25*window_length//64
+    
+    Analysis_filters, Synthesis_filters = PQMF.nearPR_CMFB(
         num_bands = num_bands,
         num_taps = bandFilters_taps,
         tol_transitionBand = bandFilter_tol
     )
-
-
-    max_poles = 25*window_length//64
-
+    
     ## Initializing output vectors
     xHarmo = np.zeros(len(x), dtype = np.complex128)
     xNoise = np.zeros(len(x), dtype = np.complex128)
@@ -850,7 +824,7 @@ def multiband_HN(
             factor = ester_factor
         )
         xChoppedWhitened = window_signal(
-            x = xDecimated,
+            x = xWhitened,
             window_length = window_length,
             hop_length = hop_length
         )
@@ -888,3 +862,4 @@ def multiband_HN(
         xNoise += sig.lfilter(Synthesis_filters[band_idx], [1], xNoiseInsert)*num_bands
 
     return xHarmo, xNoise
+

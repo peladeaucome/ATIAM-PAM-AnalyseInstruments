@@ -256,7 +256,12 @@ def remove_init_noise(sig, fs, method="mean", ratio_parameter = 3, len_noise = 1
 
     i=0
     while np.abs(sig[i]) < ratio_parameter*noise_threshold :
-        i += 1
+        if i < len(sig)-1 :
+            i += 1
+        elif i == len(sig) :
+            print("Pas de coupe trouvée...")
+            i = 0
+
     #i correspond au premier indice au dessus du seuil
     sig = sig[i:]
     time = np.arange(len(sig))/fs

@@ -5,13 +5,16 @@ import pickle
 import os
 import librosa
 import _dataset_.Compute_Features as cf
+import torchaudio.transforms as ta
 
-def load_data(path,dataset_type = "list",
+def load_data(path,
+              dataset_type = "list",
               fs=40000,
               resample = False,
               resample_rate=32768,
               features = False,
-              use="Deep"):
+              use="Deep",
+              device = "cpu"):
     
     if dataset_type=="list":
         dataset= []
@@ -24,6 +27,8 @@ def load_data(path,dataset_type = "list",
     label_list = []
     parameters_list = []
     name_list = []
+    label_Deep = np.zeros(len(os.listdir(path)))
+    
     for n,label in enumerate(os.listdir(path)):
         #load du pickel avec les parametres
         with open(path+label+"/parametres.pickle", "rb") as handle:
@@ -35,6 +40,7 @@ def load_data(path,dataset_type = "list",
         # On parcours les wav du dossier et on les met dans un dictionnaire
         for j,wav in enumerate(os.listdir(path+label+"/Wav")):
             # On load les wav
+            label_Deep = np.zeros(len(os.listdir(path)))
             data,_ = librosa.load(path+label+"/Wav/"+wav,sr=fs)
             if resample:
                 data = librosa.resample(data,orig_sr = fs,target_sr=resample_rate)
@@ -46,6 +52,7 @@ def load_data(path,dataset_type = "list",
                     for i,key in enumerate(parameters_dict[wav]):
                         parameters_add[i] = parameters_dict[wav][key]
                     dataset.append((data,parameters_add,n))
+                    
                 if use=="SVM":
                     for i,key in enumerate(parameters_dict[wav]):
                         parameters_add[i] = parameters_dict[wav][key]
@@ -53,6 +60,17 @@ def load_data(path,dataset_type = "list",
                     label_list.append(n)
                     parameters_list.append(parameters_add)
                     name_list.append(label+"_"+str(j))
+
+                if use=="Deep_classif":
+                    for i,key in enumerate(parameters_dict[wav]):
+                        parameters_add[i] = parameters_dict[wav][key]
+                    data = torch.from_numpy(data).float().to(device)
+                    transf = AudioTransform(device = device)
+                    data = transf(data)
+                    data = data[None,:,:]
+                    label_Deep[n] = 1
+                    deep_label = torch.from_numpy(label_Deep).float().to(device)
+                    dataset.append((data,deep_label,parameters_add,n))
             if dataset_type=="dict":# On les met dans un dictionnaire
                 name=label+"_"+str(j)
                 dataset[name] ={"data":data,"parameters":parameters_dict[wav],"label":label}
@@ -60,8 +78,52 @@ def load_data(path,dataset_type = "list",
         data_list = np.asarray(data_list)
         label_list = np.asarray(label_list)
         parameters_list = np.asarray(parameters_list)
-        dataset=(data_list,label_list,parameters_list,name_list)
+        dataset=(data_list,label_list,parameters_list,name_list) 
     return dataset,label_num
+
+def load_mes(path,
+              resample = False,
+              resample_rate=16384,
+              device = "cpu"):
+    
+    dataset= []
+    label_num = {}
+    label_Deep = np.zeros(len(os.listdir(path)))
+    
+    for n,label in enumerate(os.listdir(path)):
+        if label == ".DS_Store":
+            continue
+        # creation d'un dictionnaire avec les labels et leur numero
+        label_num["{}".format(n)] = label
+        # On parcours les wav du dossier et on les met dans un dictionnaire
+        for j,wav in enumerate(os.listdir(path+"/"+label+"/Wav")):
+            # On load les wav
+            label_Deep = np.zeros(len(os.listdir(path)))
+            data,fs = librosa.load(path+"/"+label+"/Wav/"+wav,sr = 51200)
+            if resample:
+                data = librosa.resample(data,orig_sr = 51200,target_sr=resample_rate)
+            data = torch.from_numpy(data).float().to(device)
+            data = data[:3*resample_rate]
+            transf = AudioTransform(device = device)
+            data = transf(data)
+            data = data[None,:,:]
+            label_Deep[n] = 1
+            deep_label = torch.from_numpy(label_Deep).float().to(device)
+            dataset.append((data,deep_label,n))
+    return dataset,label_num
+
+class AudioTransform(torch.nn.Module):
+    def __init__(self, n_fft=1023, device = 'cpu'):
+        super().__init__()
+        self.n_fft = n_fft
+        window_length = 400
+        #self.window = torch.hann_window(window_length).to(device)
+        self.transf = ta.Spectrogram(n_fft = n_fft, win_length=window_length, hop_length=window_length//4, pad=window_length*2+200, power=2, normalized=False).to(device)
+        
+    def forward(self, wav: torch.Tensor): #-> torch.Tensor:
+        # Convert to power spectrogram
+        spec = self.transf(wav)
+        return spec
 
 def Create_Dataset(dataset, 
                    valid_ratio = 0.1,

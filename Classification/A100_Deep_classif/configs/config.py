@@ -3,32 +3,36 @@ import yaml
 import os
 
 
-class SVM(BaseModel):
-    feature_used: list
-    n_features: int = 2
-    kernel_svm: str = 'rbf'
-    C_svm: list
-    step: int = 10
-    model_name: str
-    plot_title: str
+class CNN_MLP(BaseModel):
+    nb_classes: int
+    ratios_CNN: list
+    channel_size: list
+    size_MLP: list
+    model_name: str = "CNN_MLP"
 
 
     
 class Dataset(BaseModel):
+    batch_size: int = 32
+    valid_ratio: float = 0.2
+    num_thread: int = 0
     dataset_type: str = "list"
     fs: int = 40000
     resample: bool = True
     resample_rate: int = 32768
-    valid_ratio: float = 0.1
     
 
 class Train(BaseModel):
-    increment: int = 10
+    lr: float
+    epochs: int 
+    save_ckpt: int = 5
+    add_fig: int = 5
+    loss: str = "MSE"
 
     
 
 class MainConfig(BaseModel):
-    model: SVM = None
+    model: CNN_MLP = None
     train: Train = None
     dataset: Dataset = None
 
@@ -38,7 +42,7 @@ def load_config(yaml_filepath="config.yaml"):
         try:
             config_dict = yaml.safe_load(config_f)
             model_dict = {
-                "model": SVM(**config_dict["model"]),
+                "model": CNN_MLP(**config_dict["model"]),
                 "train": Train(**config_dict["train"]),
                 "dataset": Dataset(**config_dict["dataset"])
 

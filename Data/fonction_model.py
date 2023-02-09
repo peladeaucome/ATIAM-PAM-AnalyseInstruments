@@ -21,7 +21,7 @@ def find_nearest_index(array, value, nearest_value=False):
         return idx, array[idx]
     return idx
 
-def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, E_c = 4, I = 10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
+def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, B = 4*10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
     """
     input:
     - h : hauteur de la table
@@ -32,8 +32,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     - T : tension de la corde
     - rho_l : masse linéique de la corde
     - L : longeur de la table
-    - E_c : module de young de la corde
-    - I : moment d'inertie de la corde
+    - B : coef d'inharmonicité de la table
     - xinB : amortissement modaux des 9 premiers modes de la table 
 
     En premier ce code fait l'analyse modale de la table, en la supposant simplement supporté, puis de la corde, 
@@ -54,14 +53,6 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
 
     """
     ################## plaque : 
-    ## Paramètres physique
-    #h = 2.8e-3 #Epaisseur de  la plaque (m)
-    #nu = 0.2 #Coeff de poisson (Pa)
-    #E = 7e9 #Module de Young (Pa)
-    #rho = 400 #Masse volumique (kg/m3)
-    ##D = E*h**3/(12*(1-nu**2)) #Raideur de la plaque  : t'en as pas besoin???
-    ##eta = 0.02 #Amortissement interne à la plaque à réfléchir 
-    #Lx, Ly, Lz = 40e-2, 23.9e-2, h #Dimensions (m)
 
     ## Paramètres de discrétisation
     NB = 3          #Nombre de modes selon x
@@ -95,16 +86,12 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     ### Tri par ordre de fréquences croissantes
     tri_idx = np.argsort(wnB)
 
-    wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant
-    #fnB = wnB/(2*np.pi)
-    #print(f"Fréquence du dernier mode de plaque calculé : {fnB[-1]:.0f} Hz")
-    #xinB = np.array([eta/2]*NmB) 
-
+    wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant 
     NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 
     ### Déformées
     def phi_pq (p,q,x,y) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
-        return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
+        return np.sin(p*np.pi*x/Lx) * np.sin(q*np.pi*y/Ly)
 
     phiB_NxNy_NmB = np.zeros((Nx*Ny,NmB)) #Matrice des déformées avec les 2 dimensions spatiales applaties en 1 dimension
     for mode in range (NmB) :
@@ -120,53 +107,47 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     MmB = np.zeros(NmB)
     for j in range(NmB) :
         PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
-        MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
+        MmB[j] = rho * h * np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
 
-    ### Normalisation des masses modales
+    ### Normalisation des modes
     norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
     MB = np.ones(NmB)
-    MB_inv = MB #Il y a une erreur la non ?
+    MB_inv = MB 
     CB = 2 * MmB * wnB * xinB
     KB = MmB * wnB ** 2
     
     ################################## cordes
     ## Paramètres physique
-    #L = 0.65 #longueur de corde (m) # à changer dans la def de simu_config si on change
-    #f1 = 110 #freq de la corde (hz)
-    #T = 73.9 #tension de la corde (N)
-    #rho_l = 3.61 * 10**(-3) #masse linéique (kg/m)
+
     ct = np.sqrt(T / rho_l) #célérité des ondes transverse (M/s)
-    B = E_c * I
-    #B = 4*10**(-5) #coefficient d'inarmonicité : B = E*I (N*m**2)
 
     ## Paramètres de discrétisation
     NmS = 75  #Modes de cordes
     NnS = np.arange(1,NmS+1)
 
     NxS = 1000 #Discrétisation spatiale
-    #dx =  (ct+1) / Fe 
-    #xS = np.arange(0,L, dx)
     xS = np.linspace(0,L,NxS) #Vecteur de la corde
 
     ## Calcul des modes
-    phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis] / 2 / L) #Déformées d'une corde fixe aux extrémités
+    phiS_Nx_NmS = np.sin((2*NnS[np.newaxis,:]-1)*np.pi*xS[:,np.newaxis] / 2 / L) #Déformées d'une corde fixe/libre
     pnS = (2 * NnS - 1) * np.pi / (2 * L)
     fnS = (ct / 2 / np.pi) * pnS * (1 + pnS**2 * B / (2 * T)) #Fréquences propres de la corde (hz)
-    #print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
+
     wnS = 2*np.pi*fnS
 
     etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
     xinS = 1/2 * ( T * (etaf + etaA / 2 / np.pi / fnS) + etaB * B*pnS**2 ) / (T + B*pnS**2) #Amortissements modaux de la corde (ø)
 
     MmS = rho_l * L / 2  #Masses modales de la corde (kg)
+    phiS_Nx_NmS = phiS_Nx_NmS / np.sqrt(MmS)
 
     ### Matrices modales
-    MS = np.ones(NmS) * MmS
-    CS = MS * 2*wnS*xinS
-    KS = MS * wnS**2
-    MS_inv = np.ones(NmS) * (1/MmS)
+    MS = np.ones(NmS) #* MmS
+    CS = MS * 2 * wnS * xinS
+    KS = MS * wnS ** 2
+    MS_inv = np.ones(NmS)# * (1/MmS)
 
     ################# bigmatrix :
 
@@ -180,7 +161,6 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     K = diags(K_lin)
     C = diags(C_lin)
 
-    #print(M,K,C,phiS_Nx_NmS)
     return(M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS)
 
 def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, model = False, mode = 'A1',x =0, y = 0):
@@ -191,7 +171,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
         Nx = len(x)
         Ny = len(y)
         #Point de couplage (par rapport à la table)
-        xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
+        xc, yc = x[int(24.5/40*Nx)], y[int(10/26 * Ny)]
         xc_idx, yc_idx = find_nearest_index(x, xc), find_nearest_index(y, yc)
         xyc = ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
         #print(xyc)
@@ -222,11 +202,11 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
     W = np.eye(NmS+NmB) - M_inv_demi @ Bplus @ Aa
 
     Z = - M.sqrt() @ Bplus @ Aa #pour calculer la force ensuite
-    
-    print(W,Z)
+
+    #print(W,Z)
     return(W,Z,xyc)
 
-def Simu_config(xS,Fe, T = 3):
+def Simu_config(xS,Fe, Tps = 3):
     """
     entrée :
     xS : discrétisation de la corde
@@ -239,28 +219,37 @@ def Simu_config(xS,Fe, T = 3):
 
     """
     # Vecteur temps
-    #Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
+    # Fe = int(2.2*max(fnS[-1], fnB[-1])) #Fréquence d'échantillonnage (hz) (on prends un peu plus que la limite pour respecter Shannon pour optimiser)
     # Fe = 44100
     # print(f"Fréquence d'échantillonage : {Fe} Hz")
-    #T = 10 #Temps d'acquisition (s)
+    # T = 10 #Temps d'acquisition (s)
     # print(f"Temps d'acquisition : {T} s")
-    t = np.linspace(0, T, T*Fe) #Vecteur temps
+    t = np.linspace(0, Tps, Tps*Fe) #Vecteur temps
     Nt = len(t)
     L = 0.65 #a changer dans la def de corde si on change
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
-    idx_deb = 0
-    idx_fin = int(0.4*1e-3*Fe)
-    Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
+    #idx_deb = 0
+    #idx_fin = int(0.16*Fe) 
+    #Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
+    #idx_zero = idx_fin + 100
 
+    fm = 0.187
+    t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
+    t2 = t1 + int(0.5*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
+
+    Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
+    Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
+
+    #Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * 0.187 #Dans ce cas, Fext est une rampe
     xe_idx = find_nearest_index(xS, 0.9*L)
     NxS = len(xS)
 
     FextS_NxS_Nt = np.zeros((NxS,Nt))
     FextS_NxS_Nt[xe_idx, : ] = Fext
 
-    plot_fext = False
+    plot_fext = True
     if plot_fext :
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
@@ -282,6 +271,7 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
     point_temp = len(t)
     #print(NmS,NmB,point_temp,FextS_NxS_Nt.shape)
     #comme il n'y a pas de force extérieur sur la table, leur projection sur la base modale vaut 0
+
     F_pro_tot = np.zeros((NmS+NmB,point_temp)) 
     F_pro_tot[:NmS,:] = F_pro_cor
 
@@ -305,11 +295,12 @@ def lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W):
 
         q_d_temp = q_d_temp + 0.5 * h * (q_dd_temp[:,i] + q_dd_temp[:,i+1])
 
-    Q = q_temp
+    Q = q_dd_temp
+    Q_pos = q_temp
 
     F_c = Z @ q_pour_f
 
-    return(Q,F_c)
+    return(Q,F_c,Q_pos)
 
 def Calcul_force(F_c,NmS,phiS_Nx_NmS):
     FS = F_c[:NmS,:]
@@ -317,7 +308,8 @@ def Calcul_force(F_c,NmS,phiS_Nx_NmS):
     return(FS_NxS_Nt)
 
 def Calcul_accel(Q,NmS,xyc,phiB_Nxy_NmB):
-    QB = Q[NmS:,:]
+    QB = Q[NmS :,:]
+    #print(xyc)
     QB_nT = phiB_Nxy_NmB[xyc,:] @ QB
     return(QB_nT)
 
@@ -326,14 +318,13 @@ def Calcul_force_2(F_c,NmS,phiB_Nxy_NmB,xyc):
     FS_NxS_Nt_2 = phiB_Nxy_NmB[xyc,:] @ FS
     return(FS_NxS_Nt_2)
 
-def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe,obs = False):
+def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
     input : 
     - T : tension de la corde
     - rho_l : masse linéique de la corde
     - L : longueur de la corde
-    - E_corde : module de Young de la corde
-    - I : moment d'inertie de la corde
+    - B : coefficient d'inharmonicité de la corde
     - h : hauteur de la table
     - E_nu : rapport E/(1-nu**2) de la table
     - rhoT : masse volumique de la table
@@ -346,13 +337,12 @@ def Main(T,rho_l,L,E_corde,I,h,E_nu,rhoT,Lx,Ly,xinB,Fe,obs = False):
     - La force exercé au chevalet par la corde
     """
 
-    M,M_inv, C,K, phiS_Nx_NmS,phiB_NxNy_NmB,NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h, E_nu, rhoT, Lx, Ly, T, rho_l, L , E_corde, I, xinB,)
-    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
-    t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
-    Q, F_c = lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
+    M, M_inv, C,K, phiS_Nx_NmS, phiB_NxNy_NmB, NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
+    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A1',x=x, y=y)
+    t,FextS_NxS_Nt = Simu_config(xS,Fe, Tps = 3)
+    Q, F_c, Q_pos= lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
-    F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)
-    Q_nT = 0
-    if obs :
-        Q_nT = Calcul_accel(Q,NmS,xyc,phiB_NxNy_NmB)
-    return(Q_nT,F,F_2)
+    #F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)   
+    Q_nT = Calcul_accel(Q,NmS,xyc,phiB_NxNy_NmB)
+    Q_posnT = Calcul_accel(Q_pos,NmS,xyc,phiB_NxNy_NmB)
+    return(Q_nT,Q_posnT,F)
