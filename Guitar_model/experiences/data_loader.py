@@ -87,8 +87,11 @@ for it, table in enumerate(os.listdir(path_to_folder)) :
                             data_dict = {}
                             data_dict["mat_table"] = table
                             data_dict["mat_corde"] = type_corde
+                            data_dict["fichier"] = corde
                             data_dict["acc"] = mat["acc_t"].reshape(-1)
                             data_dict["fs"] = int(mat["fs"].reshape(-1))
+                            # _, data_dict["acc"] = mm.remove_init_noise(data_dict["acc"],data_dict["fs"], method="max", ratio_parameter=2)
+                            _, data_dict["acc"] = mm.clean_RI(data_dict["acc"], data_dict["fs"], tol_from_max=0.1, method="max", ratio_parameter=2)
                             data_dict["temps"] = mat["time"].reshape(-1)
                             #assignation du dictionnaire dans le grand tableau avec tout
                             jeu_Nta_Ntc_Nc_Np[itable,0,icorde-1,iplectre-1] = data_dict #on pourra rendre le "0" variable qd on prendre d'autres types de cordes en compte

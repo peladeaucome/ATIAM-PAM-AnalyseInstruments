@@ -99,8 +99,11 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, B, xinB) :
     #print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
     wnS = 2*np.pi*fnS
 
-    etaf, etaA, etaB = 7e-5, 0.9, 2.5e-2
+    etaf, etaA, etaB = 7e-5, 0.9, 1/10*2.5e-2 
+    #etaA semble gérer plutot l'enveloppe temporelle générale à l'écoute, etaB semble ajuster plutôt l'amortissement des hautes fréquences
+    #
     xinS = 1/2 * ( T*(etaf + etaA / 2 / np.pi / fnS) + etaB * B*pnS**2 ) / (T + B*pnS**2) #Amortissements modaux de la corde (ø)
+    print(xinS)
 
     MmS = rho_l * L / 2  #Masses modales de la corde (kg)
 
@@ -130,7 +133,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = True, mo
         xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
         xc_idx, yc_idx = find_nearest_index(x, xc), find_nearest_index(y, yc)
         xyc = ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
-        print(xc_idx, yc_idx)
+        # print(xc_idx, yc_idx)
         #pour modèle de la plaque:
         phiBS = phiB_NxNy_NmB[xyc,:]
 
@@ -188,8 +191,8 @@ def Simu_config(xS,Fe, T = 3, exc="gliss"):
         Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * fm #Dans ce cas, Fext est une rampe
 
     if exc == "gliss" :
-        t1 = int(0.16*Fe) #indice du temps où l'on lâche la corde
-        t2 = t1 + int(1/2*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
+        t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
+        t2 = t1 + int(0.5*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
 
         Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
         Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
@@ -200,7 +203,7 @@ def Simu_config(xS,Fe, T = 3, exc="gliss"):
     FextS_NxS_Nt = np.zeros((NxS,Nt))
     FextS_NxS_Nt[xe_idx, : ] = Fext
 
-    plot_fext = True
+    plot_fext = False
     if plot_fext :
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
