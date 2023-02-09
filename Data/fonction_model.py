@@ -87,12 +87,11 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     tri_idx = np.argsort(wnB)
 
     wnB = wnB[tri_idx]    #On range les pulsations par ordre croissant 
-
     NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 
     ### Déformées
     def phi_pq (p,q,x,y) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
-        return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
+        return np.sin(p*np.pi*x/Lx) * np.sin(q*np.pi*y/Ly)
 
     phiB_NxNy_NmB = np.zeros((Nx*Ny,NmB)) #Matrice des déformées avec les 2 dimensions spatiales applaties en 1 dimension
     for mode in range (NmB) :
@@ -108,9 +107,9 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     MmB = np.zeros(NmB)
     for j in range(NmB) :
         PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
-        MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
+        MmB[j] = rho * h * np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
 
-    ### Normalisation des masses modales
+    ### Normalisation des modes
     norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
@@ -142,12 +141,13 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     xinS = 1/2 * ( T * (etaf + etaA / 2 / np.pi / fnS) + etaB * B*pnS**2 ) / (T + B*pnS**2) #Amortissements modaux de la corde (ø)
 
     MmS = rho_l * L / 2  #Masses modales de la corde (kg)
+    phiS_Nx_NmS = phiS_Nx_NmS / np.sqrt(MmS)
 
     ### Matrices modales
-    MS = np.ones(NmS) * MmS
+    MS = np.ones(NmS) #* MmS
     CS = MS * 2 * wnS * xinS
     KS = MS * wnS ** 2
-    MS_inv = np.ones(NmS) * (1/MmS)
+    MS_inv = np.ones(NmS)# * (1/MmS)
 
     ################# bigmatrix :
 
@@ -171,7 +171,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
         Nx = len(x)
         Ny = len(y)
         #Point de couplage (par rapport à la table)
-        xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
+        xc, yc = x[int(24.5/40*Nx)], y[int(10/26 * Ny)]
         xc_idx, yc_idx = find_nearest_index(x, xc), find_nearest_index(y, yc)
         xyc = ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
         #print(xyc)
@@ -206,7 +206,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = True, mod
     #print(W,Z)
     return(W,Z,xyc)
 
-def Simu_config(xS,Fe, T = 3):
+def Simu_config(xS,Fe, Tps = 3):
     """
     entrée :
     xS : discrétisation de la corde
@@ -224,18 +224,25 @@ def Simu_config(xS,Fe, T = 3):
     # print(f"Fréquence d'échantillonage : {Fe} Hz")
     # T = 10 #Temps d'acquisition (s)
     # print(f"Temps d'acquisition : {T} s")
-    t = np.linspace(0, T, T*Fe) #Vecteur temps
+    t = np.linspace(0, Tps, Tps*Fe) #Vecteur temps
     Nt = len(t)
     L = 0.65 #a changer dans la def de corde si on change
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
-    idx_deb = 0
-    idx_fin = int(0.16*Fe) 
-    Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
-    idx_zero = idx_fin + 100
+    #idx_deb = 0
+    #idx_fin = int(0.16*Fe) 
+    #Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
+    #idx_zero = idx_fin + 100
 
-    Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * 0.187 #Dans ce cas, Fext est une rampe
+    fm = 0.187
+    t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
+    t2 = t1 + int(0.5*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
+
+    Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
+    Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
+
+    #Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * 0.187 #Dans ce cas, Fext est une rampe
     xe_idx = find_nearest_index(xS, 0.9*L)
     NxS = len(xS)
 
@@ -331,8 +338,8 @@ def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
 
     M, M_inv, C,K, phiS_Nx_NmS, phiB_NxNy_NmB, NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
-    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
-    t,FextS_NxS_Nt = Simu_config(xS,Fe, T = 3)
+    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A1',x=x, y=y)
+    t,FextS_NxS_Nt = Simu_config(xS,Fe, Tps = 3)
     Q, F_c, Q_pos= lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
     #F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)   
