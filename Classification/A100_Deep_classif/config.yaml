@@ -14,7 +14,7 @@ model:
   - 128 
   - 64
   - 32
-  model_name: "Test_visu" # Mettre avec des _ partout
+  model_name: "Final_Use" # Mettre avec des _ partout
 
 dataset:
   batch_size: 20
@@ -27,7 +27,7 @@ dataset:
 
 train:
   lr : 0.0001
-  epochs: 100
+  epochs: 25
   save_ckpt: 5
   add_fig: 5
   loss: "Cross_Entropy"   # "MSE_L1"/"MSE"/"L1"
