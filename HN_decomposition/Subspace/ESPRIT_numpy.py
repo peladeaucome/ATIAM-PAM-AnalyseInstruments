@@ -789,15 +789,17 @@ def multiband_HN(
     else:
         tracking_method = "classic"
 
+    if "max_poles" in kwargs:
+        max_poles = kwargs["max_poles"]
+    else:
+        max_poles = 25*window_length//64
+    
     Analysis_filters, Synthesis_filters = PQMF.nearPR_CMFB(
         num_bands = num_bands,
         num_taps = bandFilters_taps,
         tol_transitionBand = bandFilter_tol
     )
-
-
-    max_poles = 25*window_length//64
-
+    
     ## Initializing output vectors
     xHarmo = np.zeros(len(x), dtype = np.complex128)
     xNoise = np.zeros(len(x), dtype = np.complex128)
