@@ -52,6 +52,7 @@ config_name = "{}/{}_train_config.yaml".format(config_path, main_config.model.mo
 config.save_config(main_config , config_name)
 
 sample_batch = next(iter(train_loader))
+
 model = A100_Deep_classif.models.CNN_MLP.CNN_MLP(data = sample_batch,
                                                  nb_classes = main_config.model.nb_classes,
                                                  ratios_CNN = main_config.model.ratios_CNN,

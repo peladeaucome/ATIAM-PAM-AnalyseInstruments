@@ -81,6 +81,37 @@ def load_data(path,
         dataset=(data_list,label_list,parameters_list,name_list) 
     return dataset,label_num
 
+def load_mes(path,
+              resample = False,
+              resample_rate=16384,
+              device = "cpu"):
+    
+    dataset= []
+    label_num = {}
+    label_Deep = np.zeros(len(os.listdir(path)))
+    
+    for n,label in enumerate(os.listdir(path)):
+        if label == ".DS_Store":
+            continue
+        # creation d'un dictionnaire avec les labels et leur numero
+        label_num["{}".format(n)] = label
+        # On parcours les wav du dossier et on les met dans un dictionnaire
+        for j,wav in enumerate(os.listdir(path+"/"+label+"/Wav")):
+            # On load les wav
+            label_Deep = np.zeros(len(os.listdir(path)))
+            data,fs = librosa.load(path+"/"+label+"/Wav/"+wav,sr = 51200)
+            if resample:
+                data = librosa.resample(data,orig_sr = 51200,target_sr=resample_rate)
+            data = torch.from_numpy(data).float().to(device)
+            data = data[:3*resample_rate]
+            transf = AudioTransform(device = device)
+            data = transf(data)
+            data = data[None,:,:]
+            label_Deep[n] = 1
+            deep_label = torch.from_numpy(label_Deep).float().to(device)
+            dataset.append((data,deep_label,n))
+    return dataset,label_num
+
 class AudioTransform(torch.nn.Module):
     def __init__(self, n_fft=1023, device = 'cpu'):
         super().__init__()

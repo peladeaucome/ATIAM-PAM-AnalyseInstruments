@@ -61,6 +61,8 @@ class CNN_MLP(nn.Module):
         modules.append(
                 nn.Linear(in_features = self.MLPin_size,
                               out_features = self.nb_classes))
+        modules.append(
+                nn.Softmax(dim=1))
         
         self.MLP = modules
 
