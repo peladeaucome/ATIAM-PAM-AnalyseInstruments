@@ -25,8 +25,8 @@ def derivation(t, g):
 def derivation_compete(temps, g):
     derivee_call = np.zeros(len(temps))
     for t_0 in range(len(temps)):
-        derivee_all[t_0] = derivative(g, t_0, dx = 1e-6)
-    return derivee_all
+        derivee_call[t_0] = derivative(g, t_0, dx = 1e-6)
+    return derivee_call
 
 def force(temps, Z, alpha, f, L):
     F = np.zeros(len(temps))
