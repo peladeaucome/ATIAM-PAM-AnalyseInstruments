@@ -792,7 +792,7 @@ def multiband_HN(
     if "max_poles" in kwargs:
         max_poles = kwargs["max_poles"]
     else:
-        max_poles = 25*window_length//64
+        max_poles = int(25*window_length/64)
     
     Analysis_filters, Synthesis_filters = PQMF.nearPR_CMFB(
         num_bands = num_bands,
