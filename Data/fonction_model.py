@@ -230,10 +230,7 @@ def Simu_config(xS,Fe, Tps = 3):
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
-    #idx_deb = 0
-    #idx_fin = int(0.16*Fe) 
-    #Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
-    #idx_zero = idx_fin + 100
+
 
     fm = 0.187
     t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
