@@ -70,19 +70,19 @@ MB = 4          #Nombre de modes selon y
 NmB = NB * MB      #Nombre de modes total considérés dans le modèle de plaque
 
 Nx = 40
-Ny = 40
+Ny = 39
 
-dx = 10e-3 #(10mm)
-dy = 10e-3 #(10mm)
-x = np.arange(0,Lx,dx)
-y = np.arange(0,Ly,dy)
-Nx = len(x)
-Ny = len(y)
+# dx = 10e-3 #(10mm)
+# dy = 10e-3 #(10mm)
+# x = np.arange(0,Lx,dx)
+# y = np.arange(0,Ly,dy)
+# Nx = len(x)
+# Ny = len(y)
 
-# dx = Lx/(Nx-1)
-# dy = Ly/(Ny-1)
-# x = np.linspace(0,Lx,Nx)
-# y = np.linspace(0,Ly,Ny)
+dx = Lx/(Nx-1)
+dy = Ly/(Ny-1)
+x = np.linspace(0,Lx,Nx)
+y = np.linspace(0,Ly,Ny)
 X_plate, Y_plate = np.meshgrid(x, y)
 X_ravel, Y_ravel = np.ravel(X_plate), np.ravel(Y_plate)
 
@@ -111,17 +111,22 @@ NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 
 ### Déformées
 def phi_pq (p,q,x,y) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
-    return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
+    """
+    ## Inputs
+    - p : numéro du mode selon x
+    - q : numéro du mode selon y
+    - x : arrayLike, vecteur des abscisses
+    - y : arrayLike, vecteur des ordonnées
+
+    ## Outputs
+    - phi_pq : arrayLike, size (Nx,Ny), déformée du mode (p,q) en tous les points (x,y) du maillage
+    """
+    return np.sin(p*np.pi*x[:,np.newaxis]/Lx)*np.sin(q*np.pi*y[np.newaxis,:]/Ly)
 
 phiB_NxNy_NmB = np.zeros((Nx*Ny,NmB)) #Matrice des déformées avec les 2 dimensions spatiales applaties en 1 dimension
 for mode in range (NmB) :
-    for point in range(Nx*Ny) :
-        n = NmB_idx[0,mode]
-        m = NmB_idx[1,mode]
-        x_ = X_ravel[point]
-        y_ = Y_ravel[point]
-
-        phiB_NxNy_NmB[point,mode] = phi_pq(n, m , x_, y_)
+    n, m = NmB_idx[0,mode], NmB_idx[1,mode]
+    phiB_NxNy_NmB[:,mode] = phi_pq(n, m , x, y).ravel()
 
 ### Masses modales
 MmB = np.zeros(NmB)
