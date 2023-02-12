@@ -1,3 +1,9 @@
+######################################
+# Author : Peladeau Come
+# V1.0
+# 08/02/2023
+######################################
+
 import numpy as np
 import scipy
 import numpy.typing as npt
@@ -31,7 +37,7 @@ def phi1(
     if 'n_fft' in kwargs:
         n_fft = kwargs['n_fft']
     else:
-        n_fft = 2048
+        n_fft = 4096
     
     H = np.fft.rfft(impulse_response, n=n_fft)
     
@@ -73,13 +79,14 @@ def phi2(
     if 'n_fft' in kwargs:
         n_fft = kwargs['n_fft']
     else:
-        n_fft = 2048
+        n_fft = 4096
     
     H = np.fft.rfft(impulse_response, n=n_fft)
     n_start = n_fft/(4*num_bands)
     n_start += np.ceil(tol_transitionBand*n_fft)
     n_start = int(n_start)
-    return np.sum(np.square(np.abs(H[n_start:])))/(n_fft*(num_bands-1)/num_bands)
+    out = np.sum(np.square(np.abs(H[n_start:])))/(n_fft*(num_bands-1)/num_bands)
+    return out
     #return np.sum(np.square(np.abs(H[n_start:])))
 
 def phi(
@@ -125,13 +132,12 @@ def phi(
         impulse_response=impulse_response,
         num_bands=num_bands,
     )
-    out+=(1-alpha)*phi2(
+    out += (1-alpha)*phi2(
         impulse_response=impulse_response,
         num_bands=num_bands,
         tol_transitionBand=tol_transitionBand
     )
     return out
-
 
 def PQMF_prototype(num_bands, num_taps, tol_transitionBand, alpha = .5):
 
@@ -151,7 +157,6 @@ def PQMF_prototype(num_bands, num_taps, tol_transitionBand, alpha = .5):
     prototype[:num_taps//2+1] = prototype_half[::-1]
     prototype[num_taps//2:] = prototype_half[::1] 
     return prototype
-
 
 def nearPR_CMFB(num_bands:int, num_taps:int = None, tol_transitionBand:float = None):
     """
@@ -174,10 +179,10 @@ def nearPR_CMFB(num_bands:int, num_taps:int = None, tol_transitionBand:float = N
     """
     # Number of filter taps
     if num_taps == None:
-        num_taps = num_bands*8 - (1*(num_bands%2==0))
+        num_taps = num_bands*8-1
     # Width of the transition band
     if tol_transitionBand == None:
-        tol_transitionBand = .3/num_bands
+        tol_transitionBand = .2/num_bands
 
     # Design of the protoype filter
     prototype_filter_IR = PQMF_prototype(
