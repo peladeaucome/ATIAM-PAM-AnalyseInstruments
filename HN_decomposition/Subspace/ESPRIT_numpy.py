@@ -725,9 +725,9 @@ def multiband_HN(
     x,
     window_length:int = 32,
     hop_length:int = None,
-    window_type:str = 'hann',
+    window_type:str = 'FAPI',
     ester_factor:int = 10,
-    num_bands:int = 16, **kwargs):
+    num_bands:int = 48, **kwargs):
     """
     Performs the full H+N decomposition using sub-band filtering, per band noise
     whitenening.
