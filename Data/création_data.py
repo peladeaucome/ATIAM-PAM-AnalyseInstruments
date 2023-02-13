@@ -1,6 +1,7 @@
 
 from corde import parametre_corde
 from table_corrigé import table
+# from table import table
 import Variation as v
 from pyDOE import lhs
 import numpy as np
