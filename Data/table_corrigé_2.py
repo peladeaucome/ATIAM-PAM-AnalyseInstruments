@@ -20,12 +20,11 @@ def table(medium_1=False,medium_2=False,metal=False,plexi = False):
 
     if metal : 
         rho_T = 2623.244373467073
-        L_x = 39.5e-2 #longueur de la table (m)
-        L_y = 25.5e-2 #largeur de la table (m)
+        L_x = 0.27999999999999997 #longueur de la table (m)
+        L_y = 0.1859493670886076 #largeur de la table (m)
         h = 6.01e-3 #épaisseur de la table (m)       
         E_nu = 83238129955.9411
-        xinB = np.array([0.06343621, 0.06040264, 0.05246916, 0.04143557, 0.04148383,
-        0.02160338, 0.04902268, 0.04280855, 0.04109246])
+        xinB = np.array([0.063436,0.060403,0.041436,0.041484,0.021603,0.034045,0.047832,0.039952,0.040259])
 
     if plexi :
         rho_T =  814.4294729660583 
