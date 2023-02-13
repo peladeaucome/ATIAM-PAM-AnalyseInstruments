@@ -35,7 +35,7 @@ def phi_pq (p,q,x,y, Lx, Ly) :  #Calcul analytique des déformées des modes d'u
     ## Outputs
     - phi_pq : arrayLike, size (Nx,Ny), déformée du mode (p,q) en tous les points (x,y) du maillage
     """
-    return np.sin(p*np.pi*x[:,np.newaxis]/Lx)*np.sin(q*np.pi*y[np.newaxis,:]/Ly)
+    return np.sin(p*np.pi*x[:,np.newaxis]/Lx) * np.sin(q*np.pi*y[np.newaxis,:]/Ly)
 
 def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, B = 4*10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
     """
@@ -112,7 +112,7 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
         MmB[j] = rho * h * np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
 
     ### Normalisation des modes
-    norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
+    norme_deformee_NmB = np.sqrt(MmB) #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
     MB = np.ones(NmB)

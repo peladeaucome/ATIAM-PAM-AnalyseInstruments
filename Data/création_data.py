@@ -57,8 +57,6 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
     E_nu_min = E_nu - E_nu * v.E_nu_delta
     E_nu_max = E_nu - E_nu * v.E_nu_delta
 
-
-
     #### Création des paramètres dataset
 
     bounds = [(T_min,T_max),(rho_l_min,rho_l_max),(Lc_min,Lc_max),(B_min,B_max),(h_min,h_max),(E_nu_min,E_nu_max),
