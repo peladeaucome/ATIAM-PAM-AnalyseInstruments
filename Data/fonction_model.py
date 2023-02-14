@@ -337,7 +337,7 @@ def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
 
     M, M_inv, C,K, phiS_Nx_NmS, phiB_NxNy_NmB, NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
-    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A1',x=x, y=y)
+    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, Tps = 3)
     Q, F_c, Q_pos= lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
