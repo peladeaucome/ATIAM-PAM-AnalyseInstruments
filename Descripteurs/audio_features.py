@@ -4,10 +4,15 @@
 # 14/02/2023
 ######################################
 import numpy as np
+import numpy.typing as npt
 
-def compute_spectralCentroid(x_fft, f):
+def compute_spectralCentroid(
+    x_fft:npt.ArrayLike,
+    f:npt.ArrayLike
+    ):
     """
-    Compute the spectral centroid of the signal from its fft based on [1, p.135]
+    Computes the spectral centroid of the signal from its fft based on
+    [1, p.135].
     
     Parameters :
     ------------
@@ -28,13 +33,16 @@ def compute_spectralCentroid(x_fft, f):
     """
     x_fft_norm = np.abs(x_fft)
     x_fft_norm /= np.sum(x_fft_norm)
-    spectral_centroid = np.sum(x_fft_norm*f)/np.sum(x_fft_norm)
+    spectral_centroid:float = np.sum(x_fft_norm*f)/np.sum(x_fft_norm)
     return spectral_centroid
 
-def compute_spectralBandwidth(x_fft, f, order, centroid = None):
+def compute_spectralBandwidth(
+    x_fft:npt.ArrayLike,f:npt.ArrayLike,
+    order:float = 2, centroid:float = None
+    ):
     """
-    Compute the spectral bandwidth of the signal from its fft based on
-    [1, p.135]
+    Computes the spectral bandwidth of the signal from its fft based on
+    [1, p.135].
     
     Parameters :
     ------------
@@ -64,13 +72,13 @@ def compute_spectralBandwidth(x_fft, f, order, centroid = None):
     x_fft_norm = np.abs(x_fft)
     x_fft_norm /= np.sum(x_fft_norm)
 
-    spectral_bandwidth = np.power(
+    spectral_bandwidth:float = np.power(
         np.sum(x_fft_norm*np.power(np.abs(f-centroid), order)),
         1/order
     )
     return spectral_bandwidth
 
-def compute_RMS(x):
+def compute_RMS(x:npt.ArrayLike):
     """
     Computes the RMS level of a signal
 
@@ -84,11 +92,12 @@ def compute_RMS(x):
     `RMS` : float
         RMS (root mean square) level of the signal.
     """
-    return np.sqrt(np.mean(np.square(x)))
+    RMS:float = np.sqrt(np.mean(np.square(x)))
+    return RMS
 
-def compute_ZCR(x):
+def compute_ZCR(x:npt.ArrayLike):
     """
-    Computes the zero-crossings rate of the input signal
+    Computes the zero-crossings rate of the input signal.
     
     Parameters :
     ------------
@@ -106,7 +115,11 @@ def compute_ZCR(x):
             crossings+=1
     return crossings/len(x)
 
-def compute_features(x, sr, features_list, **kwargs):
+def compute_features(
+    x:npt.ArrayLike,
+    sr:float,
+    features_list:tuple,
+    **kwargs):
     """
     Computes efficiently multiple audio feautures
 
@@ -117,7 +130,7 @@ def compute_features(x, sr, features_list, **kwargs):
     `sr` : float
         Sample rate.
     `features_list` : tuple of strings
-        tuple or list containing the names of the features to be computed.
+        tuple or list containing the keys of the features to be computed.
     
     Returns :
     ---------
