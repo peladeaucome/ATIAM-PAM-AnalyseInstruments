@@ -131,34 +131,42 @@ def compute_features(x, sr, features_list, **kwargs):
     `bandwidth` : spectral bandwidth.
     `ZCR` : Zero-crossings rate.
     `RMS` : RMS level.
-    """
-    if 'bandwidth_order' in kwargs:
-        bandwidth_order = kwargs['bandwidth_order']
-    else:
-        bandwidth_order = 2
-    
-    out = {}
 
-    x_fft = np.fft.rfft(x)
-    f = np.fft.rfftfreq(len(x), 1/sr)
+    Keyword arguments :
+    -------------------
+    `bandwidth_order` : float
+        Order of the distance function used to compute the spectral bandwidth.
+    """
+    
+    features_dict = {}
+
+    if 'centroid' in features_list or 'bandwidth' in features_list:
+        x_fft = np.fft.rfft(x)
+        f = np.fft.rfftfreq(len(x), 1/sr)
+
     centroid = None
     if 'centroid' in features_list:
         centroid = compute_spectralCentroid(x_fft, f)
-        out.append(centroid)
+        features_dict['centroid'] = centroid
     
     if 'bandwidth' in features_list:
+        if 'bandwidth_order' in kwargs:
+            bandwidth_order = kwargs['bandwidth_order']
+        else:
+            bandwidth_order = 2
+        
         bandwidth = compute_spectralBandwidth(
             x_fft = x_fft, 
             f = f,
             order = bandwidth_order,
             centroid = centroid)
-        out.append(bandwidth)
+        features_dict['bandwidth'] = bandwidth
     
     if 'ZCR' in features_list:
         ZCR = compute_ZCR(x)
-        out.append(ZCR)
+        features_dict['ZCR'] = ZCR
     
     if 'RMS' in features_list:
         RMS = compute_RMS(x)
-        out.append(RMS)
-    return out
+        features_dict['RMS'] = RMS
+    return features_dict
