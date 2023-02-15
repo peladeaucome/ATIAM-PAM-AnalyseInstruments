@@ -81,7 +81,7 @@ class train(nn.Module):
         """
         Compute loss for a batch of inputs.
         """
-        outputs = self.model(x)
+        outputs,_,_ = self.model(x)
         criterion = nn.CrossEntropyLoss()
         full_loss = criterion(outputs, labels)
         return full_loss
@@ -103,7 +103,7 @@ class train(nn.Module):
         """
         Compute classes prediction for a batch of inputs.
         """
-        outputs = self.model(x)
+        outputs,_,_ = self.model(x)
         pred_classes = torch.argmax(outputs, dim=1)
         return pred_classes
 
@@ -246,55 +246,3 @@ class train(nn.Module):
             self.writer.add_scalar("Mesures/Valid Loss", valid_loss, epoch)
             self.writer.add_scalar("Mesures/Accuracy", accuracy, epoch)
             self.writer.flush()
-
-            """ ##################### Visu #############################
-            if epoch%self.add_fig == 0:
-                batch_test = next(iter(self.valid_loader))
-                labels = batch_test[1].to(self.device)
-                inputs = batch_test[0].to(self.device)
-                classes = batch_test[3].to(self.device)
-                with torch.no_grad():
-                    pred_classes = self.compute_pred(inputs)
-                #print("Pred proba : {}\nTrue labels : {}".format(outputs, labels))
-                #print("Pred classes : {}\nTrue classes : {}".format(pred_classes, classes))
-
-                # Add confusion matrix in tensorboard
-                plt.figure()
-                cm = tm.functional.confusion_matrix(pred_classes, classes,task='multiclass', num_classes=4)
-                cm = cm.cpu().detach().numpy()
-                cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-                sns.heatmap(cm, annot=True, fmt=".2f", cmap="Blues")
-                plt.title("Confusion matrix")
-                plt.xlabel("Predicted label")
-                plt.ylabel("True label")
-                self.writer.add_figure("Deep_Classif/Confusion matrix", plt.gcf(), epoch)
-                self.writer.flush() """
-
-            """ if epoch%self.add_fig == 0:
-                batch_test = next(iter(self.valid_loader_mes))
-                labels = batch_test[1].to(self.device)
-                inputs = batch_test[0].to(self.device)
-                classes = batch_test[3].to(self.device)
-                with torch.no_grad():
-                    pred_classes = self.compute_pred(inputs)
-                #print("Pred proba : {}\nTrue labels : {}".format(outputs, labels))
-                #print("Pred classes : {}\nTrue classes : {}".format(pred_classes, classes))
-
-                # Add confusion matrix in tensorboard
-                plt.figure()
-                cm = tm.functional.confusion_matrix(pred_classes, classes,task='multiclass', num_classes=4)
-                cm = cm.cpu().detach().numpy()
-                cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-                sns.heatmap(cm, annot=True, fmt=".2f", cmap="Blues")
-                plt.title("Confusion matrix on measures")
-                plt.xlabel("Predicted label")
-                plt.ylabel("True label")
-                self.writer.add_figure("Deep_Classif/Confusion matrix mes", plt.gcf(), epoch)
-                self.writer.flush() """
-
-
-                
-                
-
-                
-

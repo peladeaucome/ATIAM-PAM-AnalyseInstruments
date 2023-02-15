@@ -4,13 +4,13 @@ from torchsummary import summary
 # Import des fichiers du modele
 import A100_Deep_classif.configs.config as config
 import _dataset_.Dataset as dataset
-import A100_Deep_classif.models.CNN_MLP 
-import A100_Deep_classif.train.Train
+import A100_Deep_classif.models.New 
+import A100_Deep_classif.train.New_train
 import time
 
 ############################################################# A MODIF #########################
 path_main = "./Classification/A100_Deep_classif"
-path_dataset = "./Classification/_dataset_/Dataset/Dataset_3/"
+path_dataset = "./Classification/_dataset_/Dataset/Dataset_4/"
 ############################################################# A MODIF #########################
 
 
@@ -26,7 +26,8 @@ list_dataset,label_num = dataset.load_data_deep(path=path_dataset,
                                                 fs=main_config.dataset.fs,
                                                 resample=main_config.dataset.resample,
                                                 resample_rate=main_config.dataset.resample_rate,
-                                                device = 'cpu')
+                                                device = 'cpu',
+                                                spec_type = 'CQT')
 
 train_loader,valid_loader = dataset.Create_Dataset(dataset= list_dataset,
                                                    valid_ratio = main_config.dataset.valid_ratio,
@@ -37,7 +38,11 @@ train_loader,valid_loader = dataset.Create_Dataset(dataset= list_dataset,
 ###### Load dataset Mesures HR ######
 name_dataset = "Dataset_Mesures/"
 path_dataset = "./Classification/_dataset_/Dataset/{}".format( name_dataset)
-list_dataset_mes, label_num_mes = dataset.load_mes(path_dataset,resample=True,resample_rate=16384)
+list_dataset_mes, label_num_mes = dataset.load_mes(path_dataset,
+                                                   resample=True,
+                                                   resample_rate=16384,
+                                                   device = 'cpu',
+                                                   spec_type = 'CQT')
 
 
 
@@ -67,18 +72,13 @@ config.save_config(main_config , config_name)
 
 sample_batch = next(iter(train_loader))
 
-model = A100_Deep_classif.models.CNN_MLP.CNN_MLP(data = sample_batch,
-                                                 nb_classes = main_config.model.nb_classes,
-                                                 ratios_CNN = main_config.model.ratios_CNN,
-                                                 channel_size = main_config.model.channel_size,
-                                                 size_MLP = main_config.model.size_MLP
-                                                 ).to(device)
+model = A100_Deep_classif.models.New.New_model().to(device)
 
 print("\n")
 print(summary(model,(sample_batch[0].size()[1],sample_batch[0].size()[2],sample_batch[0].size()[3])))
 print("\n")
 
-model_train = A100_Deep_classif.train.Train.train(model = model,
+model_train = A100_Deep_classif.train.New_train.train(model = model,
                               train_loader = train_loader,
                               valid_loader = valid_loader,
                               train_loader_mes = train_loader_mes,
@@ -93,8 +93,32 @@ model_train = A100_Deep_classif.train.Train.train(model = model,
                               path_main = path_main,
                               device = device)
 
-
 model_train.train_step()
 
 
 
+""" output,linear,cnn = model(sample_batch[0].to(device))
+
+import matplotlib.pyplot as plt
+
+plt.figure()
+plt.imshow(cnn[0,0,:,:].detach().cpu().numpy())
+plt.show()
+
+plt.figure()
+plt.imshow(cnn[0,1,:,:].detach().cpu().numpy())
+plt.show()
+
+plt.figure()
+plt.imshow(cnn[1,0,:,:].detach().cpu().numpy())
+plt.show()
+
+plt.figure()
+plt.imshow(cnn[1,1,:,:].detach().cpu().numpy())
+plt.show()
+
+plt.figure()
+plt.plot(output.detach().cpu().numpy())
+plt.show()
+
+ """
