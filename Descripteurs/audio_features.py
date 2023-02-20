@@ -95,7 +95,7 @@ def compute_RMS(x:npt.ArrayLike):
     RMS:float = np.sqrt(np.mean(np.square(x)))
     return RMS
 
-def compute_ZCR(x:npt.ArrayLike):
+def compute_ZCR(x:npt.ArrayLike, sr = 1):
     """
     Computes the zero-crossings rate of the input signal.
     
@@ -113,7 +113,7 @@ def compute_ZCR(x:npt.ArrayLike):
     for i in range(len(x)-1):
         if x[i+1]*x[i]<0:
             crossings+=1
-    return crossings/len(x)
+    return crossings/len(x)*sr
 
 def compute_features(
     x:npt.ArrayLike,
@@ -176,7 +176,7 @@ def compute_features(
         features_dict['bandwidth'] = bandwidth
     
     if 'ZCR' in features_list:
-        ZCR = compute_ZCR(x)
+        ZCR = compute_ZCR(x, sr)
         features_dict['ZCR'] = ZCR
     
     if 'RMS' in features_list:
