@@ -853,10 +853,11 @@ def multiband_HN(
 
         
         xHarmoInsert = np.zeros(len(x), dtype = np.complex128)
-        xHarmoInsert[::num_bands] = xHarmo_band[:len(x)//num_bands+1]
+        xHarmoInsert[::num_bands] = xHarmo_band[:len(x)//num_bands+1*(len(x)%num_bands!=0)]
         
         xNoiseInsert = np.zeros(len(x), dtype = np.complex128)
-        xNoiseInsert[::num_bands] = xNoise_band[:len(x)//num_bands+1]
+        xNoiseInsert[::num_bands] = xNoise_band[:len(x)//num_bands+1*(len(x)%num_bands!=0)]
+
 
         xHarmo += sig.lfilter(Synthesis_filters[band_idx], [1], xHarmoInsert)*num_bands
         xNoise += sig.lfilter(Synthesis_filters[band_idx], [1], xNoiseInsert)*num_bands
