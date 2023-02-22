@@ -1,6 +1,7 @@
 
 from corde import parametre_corde
-from table_corrigé import table
+from table_corrigé_2 import table
+# from table import table
 import Variation as v
 from pyDOE import lhs
 import numpy as np
@@ -55,8 +56,6 @@ def param_Dataset(N_sample = 1000,article_C= False,acier_1C = False, acier_2C = 
 
     E_nu_min = E_nu - E_nu * v.E_nu_delta
     E_nu_max = E_nu - E_nu * v.E_nu_delta
-
-
 
     #### Création des paramètres dataset
 

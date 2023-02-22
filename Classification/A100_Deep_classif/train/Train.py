@@ -13,6 +13,8 @@ class train(nn.Module):
                  model, 
                  train_loader, 
                  valid_loader,
+                 train_loader_mes, 
+                 valid_loader_mes,
                  num_epochs,
                  lr,
                  loss,
@@ -22,11 +24,14 @@ class train(nn.Module):
                  model_name, 
                  path_main,
                  device,
+                 mes_in_train = False
                  ):
         super(train, self).__init__()
 
         self.train_loader = train_loader
         self.valid_loader = valid_loader
+        self.train_loader_mes = train_loader_mes
+        self.valid_loader_mes = valid_loader_mes
         self.model = model
         self.lr = lr
         self.path_main = path_main
@@ -38,6 +43,7 @@ class train(nn.Module):
         self.save_ckpt = save_ckpt
         self.device = device
         self.loss = loss
+        self.mes_in_train = mes_in_train
 
 
     def load_checkpoint(self):
@@ -129,12 +135,38 @@ class train(nn.Module):
                 # Somme des loss sur tous les batches
                 loss += loss_add
 
-            # Normalisation par le nombre de batch
-            loss = loss/len(self.train_loader)
+
+
+            if self.mes_in_train:
+
+                for n, batch in enumerate(self.train_loader_mes):
+                    labels = batch[1].to(self.device)
+                    inputs = batch[0].to(self.device)
+                    # Compute the loss.
+                    loss_add = self.compute_loss(inputs,labels)
+
+                    # Before the backward pass, zero all of the network gradients
+                    optimizer.zero_grad()
+
+                    # Backward pass: compute gradient of the loss with respect to parameters
+                    loss_add.backward()
+
+                    # Calling the step function to update the parameters
+                    optimizer.step()
+
+                    # Somme des loss sur tous les batches
+                    loss += loss_add
+
+                # Normalisation par le nombre de batch
+                loss = loss/(len(self.train_loader)+len(self.train_loader_mes)) #
+            else:
+                # Normalisation par le nombre de batch
+                loss = loss/len(self.train_loader)
+
 
             # Add loss in tensorboard 
-            print("Epoch : {}\nLoss : {}".format(epoch+1, loss))
-            self.writer.add_scalar("Deep_Classif/Loss", loss, epoch)
+            print("\nEpoch : {}\nLoss : {}".format(epoch+1, loss))
+            self.writer.add_scalar("Training/Loss", loss, epoch)
             self.writer.flush()
 
             # Save checkpoint
@@ -164,9 +196,11 @@ class train(nn.Module):
             valid_loss = valid_loss/len(self.valid_loader)
             accuracy = accuracy/len(self.valid_loader)
             print("Valid Loss : {}\nAccuracy : {}".format(valid_loss, accuracy))
-            self.writer.add_scalar("Deep_Classif/Valid_Loss", valid_loss, epoch)
-            self.writer.add_scalar("Deep_Classif/Valid_Accuracy", accuracy, epoch)
+            self.writer.add_scalar("Synthesis/Valid_Loss", valid_loss, epoch)
+            self.writer.add_scalar("Synthesis/Accuracy", accuracy, epoch)
             self.writer.flush()
+
+            
 
             # Stopping criterion
             if epoch==start_epoch:
@@ -192,8 +226,28 @@ class train(nn.Module):
 
             old_valid = valid_loss
 
+            ####### Validation sur les mesures #######
+            valid_loss = torch.Tensor([0]).to(self.device)
+            accuracy = torch.Tensor([0]).to(self.device)
 
-            ##################### Visu #############################
+            for n, batch in enumerate(self.valid_loader_mes):
+                labels = batch[1].to(self.device)
+                inputs = batch[0].to(self.device)
+                classes = batch[3].to(self.device)
+                with torch.no_grad():
+                    valid_loss_add = self.compute_loss(inputs,labels)
+                    accuracy_add = self.compute_acc(inputs,classes)
+                valid_loss += valid_loss_add
+                accuracy += accuracy_add
+
+            valid_loss = valid_loss/len(self.valid_loader_mes)
+            accuracy = accuracy/len(self.valid_loader_mes)
+            print("Mesures -> Loss : {} & Accuracy : {}".format(valid_loss, accuracy))
+            self.writer.add_scalar("Mesures/Valid Loss", valid_loss, epoch)
+            self.writer.add_scalar("Mesures/Accuracy", accuracy, epoch)
+            self.writer.flush()
+
+            """ ##################### Visu #############################
             if epoch%self.add_fig == 0:
                 batch_test = next(iter(self.valid_loader))
                 labels = batch_test[1].to(self.device)
@@ -214,7 +268,29 @@ class train(nn.Module):
                 plt.xlabel("Predicted label")
                 plt.ylabel("True label")
                 self.writer.add_figure("Deep_Classif/Confusion matrix", plt.gcf(), epoch)
-                self.writer.flush()
+                self.writer.flush() """
+
+            """ if epoch%self.add_fig == 0:
+                batch_test = next(iter(self.valid_loader_mes))
+                labels = batch_test[1].to(self.device)
+                inputs = batch_test[0].to(self.device)
+                classes = batch_test[3].to(self.device)
+                with torch.no_grad():
+                    pred_classes = self.compute_pred(inputs)
+                #print("Pred proba : {}\nTrue labels : {}".format(outputs, labels))
+                #print("Pred classes : {}\nTrue classes : {}".format(pred_classes, classes))
+
+                # Add confusion matrix in tensorboard
+                plt.figure()
+                cm = tm.functional.confusion_matrix(pred_classes, classes,task='multiclass', num_classes=4)
+                cm = cm.cpu().detach().numpy()
+                cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+                sns.heatmap(cm, annot=True, fmt=".2f", cmap="Blues")
+                plt.title("Confusion matrix on measures")
+                plt.xlabel("Predicted label")
+                plt.ylabel("True label")
+                self.writer.add_figure("Deep_Classif/Confusion matrix mes", plt.gcf(), epoch)
+                self.writer.flush() """
 
 
                 

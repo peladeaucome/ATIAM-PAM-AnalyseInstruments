@@ -10,7 +10,7 @@ import time
 
 ############################################################# A MODIF #########################
 path_main = "./Classification/A100_Deep_classif"
-path_dataset = "./Classification/_dataset_/Dataset/Dataset_1/"
+path_dataset = "./Classification/_dataset_/Dataset/Dataset_3/"
 ############################################################# A MODIF #########################
 
 
@@ -21,18 +21,32 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 main_config = config.load_config("{}/config.yaml".format(path_main))
 
 start = time.time()
-# Import du dataset
-list_dataset,label_num = dataset.load_data(path=path_dataset,
-                                           dataset_type=main_config.dataset.dataset_type,
-                                           fs=main_config.dataset.fs,
-                                           resample=main_config.dataset.resample,
-                                           resample_rate=main_config.dataset.resample_rate,
-                                           use = "Deep_classif")
+###### Load dataset ######
+list_dataset,label_num = dataset.load_data_deep(path=path_dataset,
+                                                fs=main_config.dataset.fs,
+                                                resample=main_config.dataset.resample,
+                                                resample_rate=main_config.dataset.resample_rate,
+                                                device = 'cpu')
 
 train_loader,valid_loader = dataset.Create_Dataset(dataset= list_dataset,
                                                    valid_ratio = main_config.dataset.valid_ratio,
                                                    num_threads = main_config.dataset.num_thread,
                                                    batch_size = main_config.dataset.batch_size)
+
+
+###### Load dataset Mesures HR ######
+name_dataset = "Dataset_Mesures/"
+path_dataset = "./Classification/_dataset_/Dataset/{}".format( name_dataset)
+list_dataset_mes, label_num_mes = dataset.load_mes(path_dataset,resample=True,resample_rate=16384)
+
+
+
+train_loader_mes,valid_loader_mes = dataset.Create_Dataset(dataset = list_dataset_mes,
+                                                           valid_ratio = 0.75,
+                                                           num_threads = main_config.dataset.num_thread,
+                                                           batch_size = main_config.dataset.batch_size,
+                                                           mesure = True)
+
 stop = time.time()
 print("\n                       Dataset loaded in {} seconds \n".format(stop-start))
 
@@ -67,6 +81,8 @@ print("\n")
 model_train = A100_Deep_classif.train.Train.train(model = model,
                               train_loader = train_loader,
                               valid_loader = valid_loader,
+                              train_loader_mes = train_loader_mes,
+                              valid_loader_mes = valid_loader_mes,
                               num_epochs = main_config.train.epochs,
                               lr = main_config.train.lr,
                               loss = main_config.train.loss,

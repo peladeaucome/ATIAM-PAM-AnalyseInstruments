@@ -22,7 +22,17 @@ def omega_pq (p,q, h, E_nu, rho, Lx, Ly) :
         return np.sqrt(E_nu*h**2/(12*rho)) * ((p*np.pi/Lx)**2+(q*np.pi/Ly)**2)
 
 def phi_pq (p,q,x,y, Lx, Ly) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
-        return np.sin(p*np.pi*x/Lx)*np.sin(q*np.pi*y/Ly)
+    """
+    ## Inputs
+    - p : numéro du mode selon x
+    - q : numéro du mode selon y
+    - x : arrayLike, vecteur des abscisses
+    - y : arrayLike, vecteur des ordonnées
+
+    ## Outputs
+    - phi_pq : arrayLike, size (Nx,Ny), déformée du mode (p,q) en tous les points (x,y) du maillage
+    """
+    return np.sin(p*np.pi*x[:,np.newaxis]/Lx)*np.sin(q*np.pi*y[np.newaxis,:]/Ly)
 
 def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, B, xinB) :
     #============================================= TABLE =============================================
@@ -59,19 +69,16 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, B, xinB) :
     ### Déformées
     phiB_NxNy_NmB = np.zeros((Nx*Ny,NmB)) #Matrice des déformées avec les 2 dimensions spatiales applaties en 1 dimension
     for mode in range (NmB) :
-        for point in range(Nx*Ny) :
-            n = NmB_idx[0,mode]
-            m = NmB_idx[1,mode]
-            x_ = X_ravel[point]
-            y_ = Y_ravel[point]
-
-            phiB_NxNy_NmB[point,mode] = phi_pq(n, m , x_, y_,Lx,Ly)
+        n, m = NmB_idx[0,mode], NmB_idx[1,mode]
+        phiB_NxNy_NmB[:,mode] = phi_pq(n, m , x, y, Lx, Ly).ravel()
 
     ### Masses modales
     MmB = np.zeros(NmB)
     for j in range(NmB) :
         PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
         MmB[j] = rho*h* np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
+
+    print(MmB)
 
     ### Normalisation des masses modales
     norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
@@ -99,13 +106,14 @@ def bigdickenergy_ss(h, E_nu, rho, Lx, Ly, T, rho_l, L, B, xinB) :
     #print(f"Fréquence du dernier mode de corde calculé : {fnS[-1]:.0f} Hz")
     wnS = 2*np.pi*fnS
 
-    etaf, etaA, etaB = 7e-5, 0.9, 1/10*2.5e-2 
+    etaf, etaA, etaB = 1*7e-5, 1*0.9, 1*2.5e-2 
     #etaA semble gérer plutot l'enveloppe temporelle générale à l'écoute, etaB semble ajuster plutôt l'amortissement des hautes fréquences
     #
     xinS = 1/2 * ( T*(etaf + etaA / 2 / np.pi / fnS) + etaB * B*pnS**2 ) / (T + B*pnS**2) #Amortissements modaux de la corde (ø)
-    print(xinS)
+    # xinS[0] = 0.0000001 #On force le premier mode à être non amorti
 
     MmS = rho_l * L / 2  #Masses modales de la corde (kg)
+    print(MmS)
 
     ### Matrices modales
     MS = np.ones(NmS)*MmS
@@ -130,7 +138,7 @@ def UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS, article = True, mo
         Nx = len(x)
         Ny = len(y)
         #Point de couplage (par rapport à la table)
-        xc, yc = x[int(24.5/40*Nx)], y[Ny//2]
+        xc, yc = x[int(24.5/40*Nx)], y[int(10/26*Ny)]
         xc_idx, yc_idx = find_nearest_index(x, xc), find_nearest_index(y, yc)
         xyc = ravel_index_from_true_indexes(xc_idx, yc_idx, Nx)
         # print(xc_idx, yc_idx)
@@ -191,10 +199,11 @@ def Simu_config(xS,Fe, T = 3, exc="gliss"):
         Fext[idx_fin:idx_zero] = np.linspace(1,0,idx_zero - idx_fin) * fm #Dans ce cas, Fext est une rampe
 
     if exc == "gliss" :
-        t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
-        t2 = t1 + int(0.5*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
+        t1 = int(100e-3*Fe) #indice du temps où l'on lâche la corde
+        t2 = t1 + int(2*1e-3*Fe) #indice du temps où la force repasse à 0 (fin du glissement du plectre sur la corde) : à modéliser, int(1/2*1e-3*Fe) pour le moment #CF thèse Grégoire Derveaux, eq. 1.34
 
         Fext[:t1] = fm/2 * (1 - np.cos(np.pi*t[:t1]/t[t1]))
+        # Fext[:t1] = np.linspace(0,1,t1) * fm #Dans ce cas, Fext est une rampe
         Fext[t1:t2] = fm/2 * (1 + np.cos(np.pi*(t[t1:t2]-t[t1])/(t[t2]-t[t1])))
 
     xe_idx = find_nearest_index(xS, 0.9*L)
@@ -203,7 +212,7 @@ def Simu_config(xS,Fe, T = 3, exc="gliss"):
     FextS_NxS_Nt = np.zeros((NxS,Nt))
     FextS_NxS_Nt[xe_idx, : ] = Fext
 
-    plot_fext = False
+    plot_fext = True
     if plot_fext :
         fig = plt.figure()
         ax1 = fig.add_subplot(111)

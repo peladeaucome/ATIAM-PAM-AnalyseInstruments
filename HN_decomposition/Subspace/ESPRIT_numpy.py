@@ -725,9 +725,9 @@ def multiband_HN(
     x,
     window_length:int = 32,
     hop_length:int = None,
-    window_type:str = 'hann',
+    window_type:str = 'FAPI',
     ester_factor:int = 10,
-    num_bands:int = 16, **kwargs):
+    num_bands:int = 48, **kwargs):
     """
     Performs the full H+N decomposition using sub-band filtering, per band noise
     whitenening.
@@ -792,7 +792,7 @@ def multiband_HN(
     if "max_poles" in kwargs:
         max_poles = kwargs["max_poles"]
     else:
-        max_poles = 25*window_length//64
+        max_poles = int(25*window_length/64)
     
     Analysis_filters, Synthesis_filters = PQMF.nearPR_CMFB(
         num_bands = num_bands,
@@ -853,10 +853,11 @@ def multiband_HN(
 
         
         xHarmoInsert = np.zeros(len(x), dtype = np.complex128)
-        xHarmoInsert[::num_bands] = xHarmo_band[:len(x)//num_bands+1]
+        xHarmoInsert[::num_bands] = xHarmo_band[:len(x)//num_bands+1*(len(x)%num_bands!=0)]
         
         xNoiseInsert = np.zeros(len(x), dtype = np.complex128)
-        xNoiseInsert[::num_bands] = xNoise_band[:len(x)//num_bands+1]
+        xNoiseInsert[::num_bands] = xNoise_band[:len(x)//num_bands+1*(len(x)%num_bands!=0)]
+
 
         xHarmo += sig.lfilter(Synthesis_filters[band_idx], [1], xHarmoInsert)*num_bands
         xNoise += sig.lfilter(Synthesis_filters[band_idx], [1], xNoiseInsert)*num_bands

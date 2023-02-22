@@ -26,7 +26,6 @@ class CNN_MLP(nn.Module):
             y = y//ratio
             self.ratio_CNN_global *= ratio
         self.MLPin_size = int(self.channel_size[-1]*x*y)
-        #print("MLPin_size: ", self.MLPin_size)
         ################### Build CNN layers ###################
         modules = nn.Sequential()
         for i,ratio in enumerate(self.ratios_CNN):
@@ -40,6 +39,8 @@ class CNN_MLP(nn.Module):
                     nn.BatchNorm2d(self.channel_size[i]))
             modules.append(
                     nn.LeakyReLU())
+            modules.append(
+                    nn.Dropout2d(p=0.05))
             
             self.in_channels = self.channel_size[i]
 

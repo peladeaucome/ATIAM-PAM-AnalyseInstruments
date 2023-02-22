@@ -9,7 +9,7 @@ import time
 import matplotlib.pyplot as plt
 ############################################################# A MODIF #########################
 path_main = "./Classification/A000_SVM"
-path_dataset = "./Classification/_dataset_/Dataset/Dataset_1/"
+path_dataset = "./Classification/_dataset_/Dataset/Dataset_4/"
 ############################################################# A MODIF #########################
 
 
@@ -18,16 +18,15 @@ main_config = config.load_config("{}/config.yaml".format(path_main))
 
 
 # Import du dataset
-list_dataset,label_num = dataset.load_data(path=path_dataset,
-                                           dataset_type="list",
-                                           fs=40000,  
-                                           resample=False,
-                                           resample_rate=32768,
-                                           use="SVM")
+list_dataset,label_num = dataset.load_data_SVM(path=path_dataset,
+                                           fs=32768,  
+                                           resample=True,
+                                           resample_rate=16384)
 list_classes = list(label_num.keys())
 
-
-
+print("Dataset loaded !")
+print(list_dataset[0].shape, list_dataset[1].shape)
+""" 
 dict_features = cf.compute_features(data = list_dataset[0],
                            sr = main_config.dataset.fs,
                            use = "SVM",
@@ -62,7 +61,7 @@ SVM_train = A000_SVM.train.Train.train(features = dict_features,
                                        writer = writer,
                                        step=main_config.model.step,
                                        n_features=main_config.model.n_features)
-SVM_train.train_step()
+SVM_train.train_step() """
 
 
 

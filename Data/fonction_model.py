@@ -21,6 +21,22 @@ def find_nearest_index(array, value, nearest_value=False):
         return idx, array[idx]
     return idx
 
+def omega_pq (p,q,h,E_nu,rho,Lx,Ly) :    #Calcul analytique des pulsations propres d'une plaque en appuis simple
+    return np.sqrt(E_nu*h**2/(12*rho)) * ((p*np.pi/Lx)**2+(q*np.pi/Ly)**2)
+
+def phi_pq (p,q,x,y, Lx, Ly) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
+    """
+    ## Inputs
+    - p : numéro du mode selon x
+    - q : numéro du mode selon y
+    - x : arrayLike, vecteur des abscisses
+    - y : arrayLike, vecteur des ordonnées
+
+    ## Outputs
+    - phi_pq : arrayLike, size (Nx,Ny), déformée du mode (p,q) en tous les points (x,y) du maillage
+    """
+    return np.sin(p*np.pi*x[:,np.newaxis]/Lx) * np.sin(q*np.pi*y[np.newaxis,:]/Ly)
+
 def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-2, Ly = 40e-2, T = 73.9, rho_l = 3.61 * 10**(-3), L = 0.65, B = 4*10**(-5), xinB = np.array([2.2,1.1,1.6,1.0,0.7,0.9,1.1,0.7,1.4])/100):
     """
     input:
@@ -55,30 +71,23 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     ################## plaque : 
 
     ## Paramètres de discrétisation
-    NB = 3          #Nombre de modes selon x
-    MB = 3         #Nombre de modes selon y
-    NmB = NB * MB      #Nombre de modes total considérés dans le modèle de plaque
+    NB, MB = 3, 3 #Nombre de modes selon x, y
+    NmB = NB * MB   #Nombre de modes total considéré dans le modèle de plaque
 
-    dx = 10e-3 #(10mm)
-    dy = 10e-3 #(10mm)
-    x = np.arange(0,Lx,dx)
-    y = np.arange(0,Ly,dy)
-    Nx = len(x)
-    Ny = len(y)
-
+    dx, dy = 10e-3, 10e-3
+    x, y = np.arange(0,Lx,dx), np.arange(0,Ly,dy)
+    Nx, Ny = len(x), len(y)
     X_plate, Y_plate = np.meshgrid(x, y)
     X_ravel, Y_ravel = np.ravel(X_plate), np.ravel(Y_plate)
 
     ## Calcul des modes
-    def omega_pq (p,q) :    #Calcul analytique des pulsations propres d'une plaque en appuis simple
-        return np.sqrt(E_nu*h**2/(12*rho)) * ((p*np.pi/Lx)**2+(q*np.pi/Ly)**2)
-
+ 
     wnB = np.zeros(NmB)
     NmB_idx = np.zeros((2,NmB))   #Cette liste permet de remonter du mode contracté "i" au mode réel (n_i,m_i) en appelant NmB_idx[:,i]
     j = 0
     for n in range(1,NB+1) :
         for m in range(1,MB+1) :
-            wnB[j] = omega_pq(n,m)
+            wnB[j] = omega_pq(n,m, h, E_nu,rho,Lx,Ly)
             NmB_idx[0,j] = n
             NmB_idx[1,j] = m
             j += 1
@@ -90,27 +99,20 @@ def Bigidibig_matrice_totale(h = 2.8e-3, E_nu = 7291666666, rho = 400, Lx = 40e-
     NmB_idx = NmB_idx[:,tri_idx]      #On ordonne les modes par ordre croissant
 
     ### Déformées
-    def phi_pq (p,q,x,y) :  #Calcul analytique des déformées des modes d'une plaque en appuis simple
-        return np.sin(p*np.pi*x/Lx) * np.sin(q*np.pi*y/Ly)
-
+   
     phiB_NxNy_NmB = np.zeros((Nx*Ny,NmB)) #Matrice des déformées avec les 2 dimensions spatiales applaties en 1 dimension
     for mode in range (NmB) :
-        for point in range(Nx*Ny) :
-            n = NmB_idx[0,mode]
-            m = NmB_idx[1,mode]
-            x_ = X_ravel[point]
-            y_ = Y_ravel[point]
-
-            phiB_NxNy_NmB[point,mode] = phi_pq(n, m , x_, y_)
+        n, m = NmB_idx[0,mode], NmB_idx[1,mode]
+        phiB_NxNy_NmB[:,mode] = phi_pq(n, m , x, y, Lx, Ly).ravel()
 
     ### Masses modales
     MmB = np.zeros(NmB)
     for j in range(NmB) :
-        PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Ny,Nx))      #Correspond à la déformée du mode j sur la plaque (en 2D)
+        PHI_j_Ny_Nx = np.reshape(phiB_NxNy_NmB[:,j],(Nx,Ny))      #Correspond à la déformée du mode j sur la plaque (en 2D)
         MmB[j] = rho * h * np.sum(np.sum(PHI_j_Ny_Nx**2,axis=1),axis=0)*dx*dy
 
     ### Normalisation des modes
-    norme_deformee_NmB = np.sqrt(MmB)         #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
+    norme_deformee_NmB = np.sqrt(MmB) #Ref : Modal Testing Theory, Practice and Application p.54, Eq. (2.25)
     phiB_NxNy_NmB = phiB_NxNy_NmB[:,:] / norme_deformee_NmB[np.newaxis,:]
 
     MB = np.ones(NmB)
@@ -230,10 +232,7 @@ def Simu_config(xS,Fe, Tps = 3):
 
     # Force extérieure appliquée à la corde
     Fext = np.zeros_like(t)
-    #idx_deb = 0
-    #idx_fin = int(0.16*Fe) 
-    #Fext[idx_deb:idx_fin] = np.linspace(0,1,idx_fin - idx_deb) * 0.187 #Dans ce cas, Fext est une rampe
-    #idx_zero = idx_fin + 100
+
 
     fm = 0.187
     t1 = int(4*0.016*Fe) #indice du temps où l'on lâche la corde
@@ -338,11 +337,11 @@ def Main(T,rho_l,L,B,h,E_nu,rhoT,Lx,Ly,xinB,Fe):
     """
 
     M, M_inv, C,K, phiS_Nx_NmS, phiB_NxNy_NmB, NmS,NmB,x,y,xS = Bigidibig_matrice_totale(h = h,E_nu= E_nu, rho= rhoT,Lx= Lx,Ly= Ly,T= T, rho_l= rho_l,L= L ,B= B,xinB =  xinB)
-    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A1',x=x, y=y)
+    W,Z,xyc = UK_params(M,M_inv,NmS, NmB, phiS_Nx_NmS,phiB_NxNy_NmB,xS,article = False, model = True, mode = 'A2',x=x, y=y)
     t,FextS_NxS_Nt = Simu_config(xS,Fe, Tps = 3)
     Q, F_c, Q_pos= lounch_simu_article(t,FextS_NxS_Nt,phiS_Nx_NmS,NmS,NmB,M_inv,C,K,Z,W)
     F = Calcul_force(F_c,NmS,phiS_Nx_NmS)
     #F_2 = Calcul_force_2(F_c,NmS,phiB_NxNy_NmB,xyc)   
     Q_nT = Calcul_accel(Q,NmS,xyc,phiB_NxNy_NmB)
     Q_posnT = Calcul_accel(Q_pos,NmS,xyc,phiB_NxNy_NmB)
-    return(Q_nT,Q_posnT,F)
+    return(Q_nT,Q_posnT,F,phiB_NxNy_NmB)

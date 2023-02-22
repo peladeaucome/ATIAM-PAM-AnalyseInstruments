@@ -47,7 +47,7 @@ model,main_config = charge_model(model_name,algo, path_main, best = best)
 
 
 ##################### Charge Data #####################
-name_dataset = "Dataset_Mesures"
+name_dataset = "Dataset_Mesures_HR"
 path_dataset = "{}/_dataset_/Dataset/{}".format(path_main, name_dataset)
 list_dataset,label_num = dataset.load_mes(path_dataset,resample=True,resample_rate=16384)
 
