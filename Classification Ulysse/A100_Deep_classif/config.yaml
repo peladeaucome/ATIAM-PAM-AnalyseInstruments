@@ -1,0 +1,33 @@
+model:
+  nb_classes: 4 # Numbers of parameters Theta
+  ratios_CNN: 
+  - 2
+  - 2
+  - 2 
+  - 4
+  channel_size: 
+  - 16
+  - 32
+  - 64
+  - 128
+  size_MLP: 
+  - 128 
+  - 64
+  - 32
+  model_name: "Final_Use" # Mettre avec des _ partout
+
+dataset:
+  batch_size: 20
+  valid_ratio: 0.1
+  num_thread: 0
+  dataset_type: "list"
+  fs: 32768
+  resample: True
+  resample_rate: 16384
+
+train:
+  lr : 0.0001
+  epochs: 25
+  save_ckpt: 5
+  add_fig: 5
+  loss: "Cross_Entropy"   # "MSE_L1"/"MSE"/"L1"
